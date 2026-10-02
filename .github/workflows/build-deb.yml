@@ -24,6 +24,51 @@ jobs:
           mkdir -p xfce5-desktop/usr/share/xsessions
           mkdir -p xfce5-desktop/DEBIAN
 
+      - name: Generate Package Control & Desktop Files
+        run: |
+          cat << 'EOF' > xfce5-desktop/DEBIAN/control
+          Package: xfce5
+          Version: 5.0.0-alpha
+          Section: x11
+          Priority: optional
+          Architecture: amd64
+          Maintainer: Salih <salih@example.com>
+          Depends: libx11-6, libwayland-client0, rofi, waybar
+          Description: XFCE5 Desktop Environment with native Wayland/X11 and auto-scaling support.
+          EOF
+
+          cat << 'EOF' > xfce5-desktop/usr/share/xsessions/xfce5.desktop
+          [Desktop Entry]
+          Name=XFCE5
+          Comment=XFCE5 Desktop Environment
+          Exec=/usr/bin/xfce5-session
+          Type=Application
+          DesktopNames=XFCE5
+          EOF
+
+          cat << 'EOF' > xfce5-desktop/usr/bin/xfce5-session
+          #!/bin/sh
+          export XDG_CURRENT_DESKTOP=XFCE5
+          export XDG_SESSION_TYPE=${XDG_SESSION_TYPE:-wayland}
+
+          if [ "$XDG_SESSION_TYPE" = "wayland" ]; then
+              export GDK_BACKEND=wayland,x11
+              export QT_QPA_PLATFORM="wayland;xcb"
+              export MOZ_ENABLE_WAYLAND=1
+          fi
+
+          /usr/bin/xfce5-autoscale-daemon
+          if [ -f /tmp/xfce5_env ]; then
+              . /tmp/xfce5_env
+          fi
+
+          if command -v wayfire >/dev/null 2>&1; then
+              exec wayfire
+          else
+              exec labwc
+          fi
+          EOF
+
       - name: Compile Autoscale Daemon
         run: |
           g++ -O2 src/autoscale.cpp -o xfce5-desktop/usr/bin/xfce5-autoscale-daemon -lX11
