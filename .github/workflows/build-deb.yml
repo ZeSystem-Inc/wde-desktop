@@ -18,6 +18,12 @@ jobs:
           sudo apt update
           sudo apt install -y g++ libx11-dev
 
+      - name: Create Package Directory Structure
+        run: |
+          mkdir -p xfce5-desktop/usr/bin
+          mkdir -p xfce5-desktop/usr/share/xsessions
+          mkdir -p xfce5-desktop/DEBIAN
+
       - name: Compile Autoscale Daemon
         run: |
           g++ -O2 src/autoscale.cpp -o xfce5-desktop/usr/bin/xfce5-autoscale-daemon -lX11
