@@ -1,0 +1,38 @@
+name: Build XFCE5 Package
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Build Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -g++ libx11-dev -y
+
+      - name: Compile Autoscale Daemon
+        run: |
+          g++ -O2 src/autoscale.cpp -o xfce5-desktop/usr/bin/xfce5-autoscale-daemon -lX11
+
+      - name: Set Permissions
+        run: |
+          chmod +x xfce5-desktop/usr/bin/*
+          chmod 755 xfce5-desktop/DEBIAN/control
+
+      - name: Build DEB Package
+        run: |
+          dpkg-deb --build xfce5-desktop xfce5_5.0.0-alpha_amd64.deb
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: xfce5-deb
+          path: xfce5_5.0.0-alpha_amd64.deb
