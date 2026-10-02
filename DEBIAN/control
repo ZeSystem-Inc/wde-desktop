@@ -1,0 +1,8 @@
+Package: xfce5
+Version: 5.0.0-alpha
+Section: x11
+Priority: optional
+Architecture: amd64
+Maintainer: Salih <salih@example.com>
+Depends: libx11-6, libwayland-client0, rofi, waybar
+Description: XFCE5 Desktop Environment with native Wayland/X11 and auto-scaling support.
