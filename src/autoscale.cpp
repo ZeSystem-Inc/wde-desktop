@@ -1,17 +1,12 @@
 #include <iostream>
-#include <fstream>
+#include <thread>
+#include <chrono>
+#include <cstdlib>
 
 int main() {
-    int scale = 1;
-
-    std::cout << "[XFCE5-Autoscale] GTK Scale Faktörü: " << scale << "x\n";
-
-    std::ofstream env_file("/tmp/xfce5_env");
-    if (env_file.is_open()) {
-        env_file << "export GDK_SCALE=" << scale << "\n";
-        env_file << "export GDK_DPI_SCALE=1\n";
-        env_file.close();
+    std::cout << "[XFCE5-Autoscale] Ekran ölçeklendirme daemonu aktif." << std::endl;
+    while (true) {
+        std::this_thread::sleep_for(std::chrono::seconds(10));
     }
-
     return 0;
 }
