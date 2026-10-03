@@ -22,7 +22,7 @@ jobs:
         run: |
           sudo apt update
           sudo apt install -y build-essential gcc g++ pkg-config \
-                              libx11-dev libxft-dev libxinerama-dev \
+                              libx11-dev libxft-dev libxinerama-dev libxrandr-dev \
                               libgtk-3-dev
 
       - name: Create Package Directory Structure
@@ -40,7 +40,7 @@ jobs:
           Priority: optional
           Architecture: amd64
           Maintainer: Salih <salih@example.com>
-          Depends: libx11-6, libgtk-3-0, rofi, dbus-x11, adwaita-icon-theme
+          Depends: libx11-6, libxrandr2, libgtk-3-0, rofi, dbus-x11, adwaita-icon-theme
           Description: Windows Desktop Environment (WDE) - Lightweight X11 Desktop Environment.
           EOF
 
@@ -76,10 +76,8 @@ jobs:
       - name: Compile Core Binaries (X11)
         run: |
           gcc src/wm.c -o wde-desktop/usr/bin/wde-wm -lX11
-
-          g++ src/autoscale.cpp -o wde-desktop/usr/bin/wde-autoscale-daemon
-
-          g++ src/panel.cpp -o wde-desktop/usr/bin/wde-panel $(pkg-config --cflags --libs gtk+-3.0)
+          g++ src/autoscale.cpp -o wde-desktop/usr/bin/wde-autoscale-daemon -lX11 -lXrandr
+          g++ src/panel.cpp -o wde-desktop/usr/bin/wde-panel $(pkg-config --cflags --libs gtk+-3.0 gdk-x11-3.0) -lX11
 
       - name: Set Executable Permissions
         run: |
