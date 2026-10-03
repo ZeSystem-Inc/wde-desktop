@@ -21,7 +21,7 @@ jobs:
       - name: Install Build Dependencies
         run: |
           sudo apt update
-          sudo apt install -y gcc g++ libgtk-3-dev libwayland-dev libwayland-bin libwlroots-dev wayland-protocols pkg-config libgbm-dev libegl1-mesa-dev libgles2-mesa-dev libdrm-dev libseat-dev
+          sudo apt install -y gcc g++ libgtk-3-dev libwayland-dev libwayland-bin libwlroots-dev wayland-protocols pkg-config libgbm-dev libegl1-mesa-dev libgles2-mesa-dev libdrm-dev libseat-dev libpixman-1-dev
 
       - name: Create Package Directory Structure
         run: |
@@ -42,7 +42,7 @@ jobs:
           Priority: optional
           Architecture: amd64
           Maintainer: Salih <salih@example.com>
-          Depends: libgtk-3-0, rofi, libwayland-server0, dbus-x11, adwaita-icon-theme, libwlroots10 | libwlroots11 | libwlroots12 | libwlroots-dev
+          Depends: libgtk-3-0, rofi, libwayland-server0, dbus-x11, adwaita-icon-theme
           Description: Native GTK3 and Wayland Desktop Environment XFCE5.
           EOF
 
@@ -60,7 +60,6 @@ jobs:
           exec > /tmp/xfce5-session.log 2>&1
           echo "[XFCE5] Oturum Başlatılıyor..."
 
-          # GPU / Wayland Sürücü ve Uyum Değişkenleri
           export XDG_CURRENT_DESKTOP=XFCE5:XFCE
           export XDG_SESSION_DESKTOP=xfce5
           export XDG_SESSION_TYPE=wayland
@@ -69,7 +68,6 @@ jobs:
           export QT_QPA_PLATFORM=wayland
           export MOZ_ENABLE_WAYLAND=1
 
-          # NVIDIA & Hybrid GPU Kuralları
           export WLR_NO_HARDWARE_CURSORS=1
           export WLR_RENDERER_ALLOW_SOFTWARE=1
           export GBM_BACKEND=nvidia-drm
@@ -113,7 +111,7 @@ jobs:
       - name: Compile Native Core Binaries
         run: |
           g++ src/autoscale.cpp -o xfce5-desktop/usr/bin/xfce5-autoscale-daemon
-          gcc -DWLR_USE_UNSTABLE -I. src/wm.c -o xfce5-desktop/usr/bin/xfce5-wm $(pkg-config --cflags --libs wayland-server wlroots gbm egl glesv2 drm)
+          gcc -DWLR_USE_UNSTABLE -I. src/wm.c -o xfce5-desktop/usr/bin/xfce5-wm $(pkg-config --cflags --libs wayland-server wlroots gbm egl glesv2 libdrm pixman-1)
           g++ src/panel.cpp -o xfce5-desktop/usr/bin/xfce5-panel $(pkg-config --cflags --libs gtk+-3.0)
 
       - name: Set Permissions
