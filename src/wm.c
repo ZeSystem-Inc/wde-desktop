@@ -8,7 +8,15 @@
 #include <wayland-server-core.h>
 #include <wlr/backend.h>
 #include <wlr/render/wlr_renderer.h>
+
+#if __has_include(<wlr/render/allocator.h>)
+#include <wlr/render/allocator.h>
+#elif __has_include(<wlr/allocator/allocator.h>)
 #include <wlr/allocator/allocator.h>
+#elif __has_include(<wlr/types/wlr_allocator.h>)
+#include <wlr/types/wlr_allocator.h>
+#endif
+
 #include <wlr/types/wlr_compositor.h>
 #include <wlr/types/wlr_data_device.h>
 #include <wlr/types/wlr_subcompositor.h>
@@ -50,7 +58,6 @@ static void server_new_output(struct wl_listener *listener, void *data) {
     struct xfce5_server *server = wl_container_of(listener, server, new_output);
     struct wlr_output *wlr_output = (struct wlr_output *)data;
 
-    // Doğru imza: (output, allocator, renderer)
     wlr_output_init_render(wlr_output, server->allocator, server->renderer);
 
     if (!wl_list_empty(&wlr_output->modes)) {
