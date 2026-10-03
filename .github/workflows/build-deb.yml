@@ -21,7 +21,6 @@ jobs:
       - name: Create Package Directory Structure
         run: |
           mkdir -p xfce5-desktop/usr/bin
-          mkdir -p xfce5-desktop/usr/share/xsessions
           mkdir -p xfce5-desktop/usr/share/wayland-sessions
           mkdir -p xfce5-desktop/DEBIAN
 
@@ -35,22 +34,13 @@ jobs:
           Architecture: amd64
           Maintainer: Salih <salih@example.com>
           Depends: qt6-base-dev, rofi, labwc, wayland-protocols
-          Description: XFCE5 Native Wayland Desktop Environment with Openbox-like Compositor & Auto-scaling.
+          Description: XFCE5 Lightweight Native Wayland Desktop Environment.
           EOF
 
           cat << 'EOF' > xfce5-desktop/usr/share/wayland-sessions/xfce5.desktop
           [Desktop Entry]
           Name=XFCE5 (Wayland)
-          Comment=XFCE5 Native Wayland Desktop Environment
-          Exec=/usr/bin/xfce5-session
-          Type=Application
-          DesktopNames=XFCE5
-          EOF
-
-          cat << 'EOF' > xfce5-desktop/usr/share/xsessions/xfce5.desktop
-          [Desktop Entry]
-          Name=XFCE5
-          Comment=XFCE5 Desktop Environment
+          Comment=XFCE5 Lightweight Desktop Environment
           Exec=/usr/bin/xfce5-session
           Type=Application
           DesktopNames=XFCE5
@@ -60,9 +50,13 @@ jobs:
           #!/bin/sh
           export XDG_CURRENT_DESKTOP=XFCE5
           export XDG_SESSION_TYPE=wayland
-          export GDK_BACKEND=wayland
-          export QT_QPA_PLATFORM=wayland
-          export MOZ_ENABLE_WAYLAND=1
+
+          export WLR_RENDERER=pixman
+          export WLR_NO_HARDWARE_CURSORS=1
+          export LIBGL_ALWAYS_SOFTWARE=1
+
+          export GDK_BACKEND=wayland,x11
+          export QT_QPA_PLATFORM="wayland;xcb"
 
           /usr/bin/xfce5-autoscale-daemon
           if [ -f /tmp/xfce5_env ]; then
