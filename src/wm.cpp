@@ -53,6 +53,7 @@ public:
 
 private:
     void on_map_request(const XMapRequestEvent& e) {
+        // Yeni bir pencere açılmak istendiğinde onu görünür yap ve odağı ver
         XMapWindow(display, e.window);
         XSetInputFocus(display, e.window, RevertToParent, CurrentTime);
         std::cout << "[XFCE5-WM] Pencere haritalandı (Mapped): " << e.window << "\n";
@@ -65,8 +66,8 @@ private:
         changes.width = e.width;
         changes.height = e.height;
         changes.border_width = e.border_width;
-        changes.above = e.above;
-        changes.detail = e.detail;
+        changes.sibling = e.above;
+        changes.stack_mode = e.detail;
 
         XConfigureWindow(display, e.window, e.value_mask, &changes);
     }
