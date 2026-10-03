@@ -33,8 +33,8 @@ jobs:
           Priority: optional
           Architecture: amd64
           Maintainer: Salih <salih@example.com>
-          Depends: qt6-base-dev, rofi, labwc, wayland-protocols
-          Description: XFCE5 Lightweight Native Wayland Desktop Environment.
+          Depends: qt6-base-dev, rofi, labwc, wayland-protocols, xdg-desktop-portal-gtk, dbus-x11, adwaita-icon-theme, gtk-update-icon-cache
+          Description: XFCE5 Lightweight GTK Native Wayland Desktop Environment.
           EOF
 
           cat << 'EOF' > xfce5-desktop/usr/share/wayland-sessions/xfce5.desktop
@@ -43,20 +43,27 @@ jobs:
           Comment=XFCE5 Lightweight Desktop Environment
           Exec=/usr/bin/xfce5-session
           Type=Application
-          DesktopNames=XFCE5
+          DesktopNames=XFCE5;GTK;
           EOF
 
           cat << 'EOF' > xfce5-desktop/usr/bin/xfce5-session
           #!/bin/sh
           export XDG_CURRENT_DESKTOP=XFCE5
           export XDG_SESSION_TYPE=wayland
+          export XDG_SESSION_DESKTOP=XFCE5
+
+          export GDK_BACKEND=wayland,x11
+          export QT_QPA_PLATFORM="wayland;xcb"
+          export QT_STYLE_OVERRIDE=adwaita
+          export GTK_THEME=Adwaita
 
           export WLR_RENDERER=pixman
           export WLR_NO_HARDWARE_CURSORS=1
           export LIBGL_ALWAYS_SOFTWARE=1
 
-          export GDK_BACKEND=wayland,x11
-          export QT_QPA_PLATFORM="wayland;xcb"
+          if [ -z "$DBUS_SESSION_BUS_ADDRESS" ]; then
+              eval $(dbus-launch --sh-syntax --exit-with-session)
+          fi
 
           /usr/bin/xfce5-autoscale-daemon
           if [ -f /tmp/xfce5_env ]; then
