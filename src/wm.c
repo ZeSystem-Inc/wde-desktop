@@ -47,8 +47,10 @@ static void output_frame(struct wl_listener *listener, void *data) {
     }
 
     wlr_renderer_begin(renderer, output->wlr_output->width, output->wlr_output->height);
-    float color[4] = {0.15f, 0.17f, 0.23f, 1.0f};
+    
+    float color[4] = {0.12f, 0.22f, 0.30f, 1.0f};
     wlr_renderer_clear(renderer, color);
+    
     wlr_renderer_end(renderer);
 
     wlr_output_commit(output->wlr_output);
