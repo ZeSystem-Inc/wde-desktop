@@ -31,7 +31,7 @@ jobs:
           mkdir -p wde-desktop/usr/share/wayland-sessions
           mkdir -p wde-desktop/DEBIAN
 
-      - name: Generate Package Control & Desktop Files
+      - name: Generate Package Control & Session Files
         run: |
           cat << 'EOF' > wde-desktop/DEBIAN/control
           Package: wde
@@ -41,7 +41,7 @@ jobs:
           Architecture: amd64
           Maintainer: Salih <salih@example.com>
           Depends: libgtk-3-0, libgtk-layer-shell0, rofi, dbus-x11, adwaita-icon-theme, libwayland-server0
-          Description: Windows Desktop Environment (WDE) - Lightweight Windows-like Wayland Desktop.
+          Description: Windows Desktop Environment (WDE) - Lightweight Wayland Desktop Environment.
           EOF
 
           cat << 'EOF' > wde-desktop/usr/share/wayland-sessions/wde.desktop
@@ -53,7 +53,6 @@ jobs:
           DesktopNames=WDE;GTK;
           EOF
 
-          # WDE Session Script
           cat << 'EOF' > wde-desktop/usr/bin/wde-session
           #!/bin/sh
           exec > /tmp/wde-session.log 2>&1
@@ -82,12 +81,12 @@ jobs:
 
       - name: Compile Core Binaries
         run: |
-          # 1. Wayland Protocol Headers
+          # 1. Wayland Protocol Headers (XDG Shell)
           wayland-scanner server-header /usr/share/wayland-protocols/stable/xdg-shell/xdg-shell.xml xdg-shell-protocol.h
           wayland-scanner private-code /usr/share/wayland-protocols/stable/xdg-shell/xdg-shell.xml xdg-shell-protocol.c
 
-          # 2. WDE Wayland WM (C)
-          gcc -DWLR_USE_UNSTABLE -I. src/wm.c xdg-shell-protocol.c -o wde-desktop/usr/bin/wde-wm $(pkg-config --cflags --libs wayland-server wlroots)
+          # 2. WDE Compositor (C)
+          gcc -I. src/wm.c xdg-shell-protocol.c -o wde-desktop/usr/bin/wde-wm $(pkg-config --cflags --libs wayland-server wlroots)
 
           # 3. WDE Autoscale Daemon (C++)
           g++ src/autoscale.cpp -o wde-desktop/usr/bin/wde-autoscale-daemon
@@ -95,7 +94,7 @@ jobs:
           # 4. WDE Taskbar Panel (C++)
           g++ src/panel.cpp -o wde-desktop/usr/bin/wde-panel $(pkg-config --cflags --libs gtk+-3.0 gtk-layer-shell-0)
 
-      - name: Set Permissions
+      - name: Set Executable Permissions
         run: |
           chmod +x wde-desktop/usr/bin/*
           chmod 755 wde-desktop/DEBIAN/control
