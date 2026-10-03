@@ -16,12 +16,13 @@ jobs:
       - name: Install Build Dependencies
         run: |
           sudo apt update
-          sudo apt install -y g++ libx11-dev qt6-base-dev qt6-base-dev-tools
+          sudo apt install -y g++ qt6-base-dev qt6-base-dev-tools
 
       - name: Create Package Directory Structure
         run: |
           mkdir -p xfce5-desktop/usr/bin
           mkdir -p xfce5-desktop/usr/share/xsessions
+          mkdir -p xfce5-desktop/usr/share/wayland-sessions
           mkdir -p xfce5-desktop/DEBIAN
 
       - name: Generate Package Control & Desktop Files
@@ -33,8 +34,17 @@ jobs:
           Priority: optional
           Architecture: amd64
           Maintainer: Salih <salih@example.com>
-          Depends: libx11-6, qt6-base-dev, rofi, x11-xserver-utils
-          Description: XFCE5 Native Desktop Environment without Openbox dependency.
+          Depends: qt6-base-dev, rofi, labwc, wayland-protocols
+          Description: XFCE5 Native Wayland Desktop Environment with Openbox-like Compositor & Auto-scaling.
+          EOF
+
+          cat << 'EOF' > xfce5-desktop/usr/share/wayland-sessions/xfce5.desktop
+          [Desktop Entry]
+          Name=XFCE5 (Wayland)
+          Comment=XFCE5 Native Wayland Desktop Environment
+          Exec=/usr/bin/xfce5-session
+          Type=Application
+          DesktopNames=XFCE5
           EOF
 
           cat << 'EOF' > xfce5-desktop/usr/share/xsessions/xfce5.desktop
@@ -49,7 +59,10 @@ jobs:
           cat << 'EOF' > xfce5-desktop/usr/bin/xfce5-session
           #!/bin/sh
           export XDG_CURRENT_DESKTOP=XFCE5
-          export XDG_SESSION_TYPE=${XDG_SESSION_TYPE:-x11}
+          export XDG_SESSION_TYPE=wayland
+          export GDK_BACKEND=wayland
+          export QT_QPA_PLATFORM=wayland
+          export MOZ_ENABLE_WAYLAND=1
 
           /usr/bin/xfce5-autoscale-daemon
           if [ -f /tmp/xfce5_env ]; then
@@ -58,13 +71,12 @@ jobs:
 
           /usr/bin/xfce5-panel &
 
-          exec /usr/bin/xfce5-wm
+          exec labwc
           EOF
 
-      - name: Compile XFCE5 Core Binaries
+      - name: Compile Core Binaries
         run: |
-          g++ -O2 src/autoscale.cpp -o xfce5-desktop/usr/bin/xfce5-autoscale-daemon -lX11
-          g++ -O2 src/wm.cpp -o xfce5-desktop/usr/bin/xfce5-wm -lX11
+          g++ -O2 src/autoscale.cpp -o xfce5-desktop/usr/bin/xfce5-autoscale-daemon
           g++ -O2 src/panel.cpp -o xfce5-desktop/usr/bin/xfce5-panel -fPIC $(pkg-config --cflags --libs Qt6Widgets)
 
       - name: Set Permissions
