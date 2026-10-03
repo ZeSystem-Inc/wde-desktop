@@ -25,7 +25,6 @@ int main(void) {
 
         switch (ev.type) {
             case MapRequest: {
-                // Yeni pencere açılmak istendiğinde ekrana yerleştir
                 XMapRequestEvent *e = &ev.xmaprequest;
                 XMapWindow(display, e->window);
                 printf("[WDE-WM] Yeni pencere eklendi: ID %lu\n", e->window);
@@ -39,8 +38,8 @@ int main(void) {
                 changes.width = e->width;
                 changes.height = e->height;
                 changes.border_width = e->border_width;
-                changes.above = e->above;
-                changes.detail = e->detail;
+                changes.sibling = e->above;
+                changes.stack_mode = e->detail;
                 XConfigureWindow(display, e->window, e->value_mask, &changes);
                 break;
             }
