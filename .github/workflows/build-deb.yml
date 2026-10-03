@@ -21,7 +21,7 @@ jobs:
       - name: Install Build Dependencies
         run: |
           sudo apt update
-          sudo apt install -y gcc g++ libgtk-3-dev libwayland-dev libwayland-bin libwlroots-dev wayland-protocols pkg-config libgbm-dev libegl1-mesa-dev libgles2-mesa-dev libdrm-dev libseat-dev libpixman-1-dev
+          sudo apt install -y gcc g++ libgtk-3-dev libwayland-dev libwayland-bin libwlroots-dev wayland-protocols pkg-config libgbm-dev libegl1-mesa-dev libgles2-mesa-dev libdrm-dev libseat-dev libpixman-1-dev libgtk-layer-shell-dev libxkbcommon-dev
 
       - name: Create Package Directory Structure
         run: |
@@ -42,7 +42,7 @@ jobs:
           Priority: optional
           Architecture: amd64
           Maintainer: Salih <salih@example.com>
-          Depends: libgtk-3-0, rofi, libwayland-server0, dbus-x11, adwaita-icon-theme
+          Depends: libgtk-3-0, rofi, libwayland-server0, dbus-x11, adwaita-icon-theme, libgtk-layer-shell0
           Description: Native GTK3 and Wayland Desktop Environment XFCE5.
           EOF
 
@@ -64,14 +64,11 @@ jobs:
           export XDG_SESSION_DESKTOP=xfce5
           export XDG_SESSION_TYPE=wayland
           export GTK_THEME=Adwaita
-          export GDK_BACKEND=wayland,x11
+          export GDK_BACKEND=wayland
           export QT_QPA_PLATFORM=wayland
-          export MOZ_ENABLE_WAYLAND=1
 
           export WLR_NO_HARDWARE_CURSORS=1
           export WLR_RENDERER_ALLOW_SOFTWARE=1
-          export GBM_BACKEND=nvidia-drm
-          export __GLX_VENDOR_LIBRARY_NAME=nvidia
 
           if [ -z "$DBUS_SESSION_BUS_ADDRESS" ]; then
               eval $(dbus-launch --sh-syntax --exit-with-session)
@@ -80,10 +77,6 @@ jobs:
           rm -f /tmp/xfce5_wayland_socket
 
           /usr/bin/xfce5-autoscale-daemon &
-
-          if [ -f /tmp/xfce5_env ]; then
-              . /tmp/xfce5_env
-          fi
 
           /usr/bin/xfce5-wm > /tmp/xfce5-wm.log 2>&1 &
           WM_PID=$!
@@ -98,7 +91,7 @@ jobs:
               export WAYLAND_DISPLAY=$(cat /tmp/xfce5_wayland_socket)
               echo "[XFCE5] Wayland Soketi Başarıyla Oluştu: $WAYLAND_DISPLAY"
           else
-              echo "[XFCE5] HATA: Wayland soketi oluşmadı! Detaylar için /tmp/xfce5-wm.log dosyasını inceleyin."
+              echo "[XFCE5] HATA: Wayland soketi oluşmadı!"
               wait $WM_PID
               exit 1
           fi
@@ -111,8 +104,8 @@ jobs:
       - name: Compile Native Core Binaries
         run: |
           g++ src/autoscale.cpp -o xfce5-desktop/usr/bin/xfce5-autoscale-daemon
-          gcc -DWLR_USE_UNSTABLE -I. src/wm.c -o xfce5-desktop/usr/bin/xfce5-wm $(pkg-config --cflags --libs wayland-server wlroots gbm egl glesv2 libdrm pixman-1)
-          g++ src/panel.cpp -o xfce5-desktop/usr/bin/xfce5-panel $(pkg-config --cflags --libs gtk+-3.0)
+          gcc -DWLR_USE_UNSTABLE -I. src/wm.c -o xfce5-desktop/usr/bin/xfce5-wm $(pkg-config --cflags --libs wayland-server wlroots gbm egl glesv2 libdrm pixman-1 xkbcommon)
+          g++ src/panel.cpp -o xfce5-desktop/usr/bin/xfce5-panel $(pkg-config --cflags --libs gtk+-3.0 gtk-layer-shell-0)
 
       - name: Set Permissions
         run: |
@@ -128,22 +121,3 @@ jobs:
         with:
           name: xfce5-deb
           path: xfce5_5.0.0-alpha_amd64.deb
-
-      - name: Publish to GitHub Releases (Tag Push)
-        uses: softprops/action-gh-release@v2
-        if: startsWith(github.ref, 'refs/tags/')
-        with:
-          files: xfce5_5.0.0-alpha_amd64.deb
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Publish Nightly Release (Main Push)
-        uses: softprops/action-gh-release@v2
-        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
-        with:
-          tag_name: nightly
-          name: "XFCE5 Nightly Build"
-          prerelease: true
-          files: xfce5_5.0.0-alpha_amd64.deb
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
