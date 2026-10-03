@@ -2,14 +2,14 @@
 #include <fstream>
 #include <cstdlib>
 
-int get_scale_factor() {
-    return 2;
+int calculate_scale() {
+    return 1;
 }
 
 int main() {
-    int scale = get_scale_factor();
+    int scale = calculate_scale();
 
-    std::cout << "[XFCE5-Autoscale] Wayland Ölçek Değeri: " << scale << "x\n";
+    std::cout << "[XFCE5-Autoscale] Wayland Ölçek Faktörü: " << scale << "x\n";
 
     std::ofstream env_file("/tmp/xfce5_env");
     if (env_file.is_open()) {
