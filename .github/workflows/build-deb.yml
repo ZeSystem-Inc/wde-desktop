@@ -1,4 +1,4 @@
-name: Build XFCE5 Package
+name: Build WDE Package
 
 on:
   push:
@@ -27,42 +27,42 @@ jobs:
 
       - name: Create Package Directory Structure
         run: |
-          mkdir -p xfce5-desktop/usr/bin
-          mkdir -p xfce5-desktop/usr/share/wayland-sessions
-          mkdir -p xfce5-desktop/DEBIAN
+          mkdir -p wde-desktop/usr/bin
+          mkdir -p wde-desktop/usr/share/wayland-sessions
+          mkdir -p wde-desktop/DEBIAN
 
       - name: Generate Package Control & Desktop Files
         run: |
-          cat << 'EOF' > xfce5-desktop/DEBIAN/control
-          Package: xfce5
-          Version: 5.0.0-alpha
+          cat << 'EOF' > wde-desktop/DEBIAN/control
+          Package: wde
+          Version: 1.0.0-alpha
           Section: x11
           Priority: optional
           Architecture: amd64
           Maintainer: Salih <salih@example.com>
           Depends: libgtk-3-0, libgtk-layer-shell0, rofi, dbus-x11, adwaita-icon-theme, libwayland-server0
-          Description: Native GTK3 Wayland Desktop Environment with Custom C Compositor (XFCE5).
+          Description: Windows Desktop Environment (WDE) - Lightweight Windows-like Wayland Desktop.
           EOF
 
-          cat << 'EOF' > xfce5-desktop/usr/share/wayland-sessions/xfce5.desktop
+          cat << 'EOF' > wde-desktop/usr/share/wayland-sessions/wde.desktop
           [Desktop Entry]
-          Name=XFCE5 (Wayland Native WM)
-          Comment=XFCE5 Native Custom Wayland Compositor
-          Exec=/usr/bin/xfce5-session
+          Name=WDE (Windows Desktop Environment)
+          Comment=Lightweight Windows-like Wayland Desktop Environment
+          Exec=/usr/bin/wde-session
           Type=Application
-          DesktopNames=XFCE5;XFCE;GTK;
+          DesktopNames=WDE;GTK;
           EOF
 
-          # XFCE5 Session Script
-          cat << 'EOF' > xfce5-desktop/usr/bin/xfce5-session
+          # WDE Session Script
+          cat << 'EOF' > wde-desktop/usr/bin/wde-session
           #!/bin/sh
-          exec > /tmp/xfce5-session.log 2>&1
-          echo "[XFCE5] Oturum Başlatılıyor..."
+          exec > /tmp/wde-session.log 2>&1
+          echo "[WDE] Oturum Başlatılıyor..."
 
-          export XDG_CURRENT_DESKTOP=XFCE5:XFCE
-          export XDG_SESSION_DESKTOP=xfce5
+          export XDG_CURRENT_DESKTOP=WDE
+          export XDG_SESSION_DESKTOP=wde
           export XDG_SESSION_TYPE=wayland
-          export GTK_THEME=Adwaita
+          export GTK_THEME=Adwaita-dark
           export GDK_BACKEND=wayland
           export QT_QPA_PLATFORM=wayland
           export MOZ_ENABLE_WAYLAND=1
@@ -74,49 +74,49 @@ jobs:
               eval $(dbus-launch --sh-syntax --exit-with-session)
           fi
 
-          /usr/bin/xfce5-autoscale-daemon &
-          /usr/bin/xfce5-panel &
+          /usr/bin/wde-autoscale-daemon &
+          /usr/bin/wde-panel &
 
-          exec /usr/bin/xfce5-wm
+          exec /usr/bin/wde-wm
           EOF
 
-      - name: Compile Core Binaries (C & C++)
+      - name: Compile Core Binaries
         run: |
-          # 1. Wayland XDG-Shell Protokol Dosyalarını Üret
+          # 1. Wayland Protocol Headers
           wayland-scanner server-header /usr/share/wayland-protocols/stable/xdg-shell/xdg-shell.xml xdg-shell-protocol.h
           wayland-scanner private-code /usr/share/wayland-protocols/stable/xdg-shell/xdg-shell.xml xdg-shell-protocol.c
 
-          # 2. Custom Wayland WM Derleme (C)
-          gcc -DWLR_USE_UNSTABLE -I. src/wm.c xdg-shell-protocol.c -o xfce5-desktop/usr/bin/xfce5-wm $(pkg-config --cflags --libs wayland-server wlroots)
+          # 2. WDE Wayland WM (C)
+          gcc -DWLR_USE_UNSTABLE -I. src/wm.c xdg-shell-protocol.c -o wde-desktop/usr/bin/wde-wm $(pkg-config --cflags --libs wayland-server wlroots)
 
-          # 3. Autoscale Daemon Derleme (C++)
-          g++ src/autoscale.cpp -o xfce5-desktop/usr/bin/xfce5-autoscale-daemon
+          # 3. WDE Autoscale Daemon (C++)
+          g++ src/autoscale.cpp -o wde-desktop/usr/bin/wde-autoscale-daemon
 
-          # 4. GTK3 Layer-Shell Panel Derleme (C++)
-          g++ src/panel.cpp -o xfce5-desktop/usr/bin/xfce5-panel $(pkg-config --cflags --libs gtk+-3.0 gtk-layer-shell-0)
+          # 4. WDE Taskbar Panel (C++)
+          g++ src/panel.cpp -o wde-desktop/usr/bin/wde-panel $(pkg-config --cflags --libs gtk+-3.0 gtk-layer-shell-0)
 
       - name: Set Permissions
         run: |
-          chmod +x xfce5-desktop/usr/bin/*
-          chmod 755 xfce5-desktop/DEBIAN/control
+          chmod +x wde-desktop/usr/bin/*
+          chmod 755 wde-desktop/DEBIAN/control
 
       - name: Build DEB Package
         run: |
-          dpkg-deb --build xfce5-desktop xfce5_5.0.0-alpha_amd64.deb
+          dpkg-deb --build wde-desktop wde_1.0.0-alpha_amd64.deb
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: xfce5-deb
-          path: xfce5_5.0.0-alpha_amd64.deb
+          name: wde-deb
+          path: wde_1.0.0-alpha_amd64.deb
 
-      - name: Publish Nightly Release (Main Push)
+      - name: Publish Nightly Release
         uses: softprops/action-gh-release@v2
         if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
         with:
           tag_name: nightly
-          name: "XFCE5 Nightly Build"
+          name: "WDE Nightly Build"
           prerelease: true
-          files: xfce5_5.0.0-alpha_amd64.deb
+          files: wde_1.0.0-alpha_amd64.deb
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
