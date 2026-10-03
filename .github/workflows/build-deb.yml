@@ -33,8 +33,8 @@ jobs:
           Priority: optional
           Architecture: amd64
           Maintainer: Salih <salih@example.com>
-          Depends: libx11-6, qt6-base-dev, rofi, x11-xserver-utils, openbox
-          Description: XFCE5 Desktop Environment with native Wayland/X11, Qt6 Panel, and auto-scaling support.
+          Depends: libx11-6, qt6-base-dev, rofi, x11-xserver-utils
+          Description: XFCE5 Native Desktop Environment without Openbox dependency.
           EOF
 
           cat << 'EOF' > xfce5-desktop/usr/share/xsessions/xfce5.desktop
@@ -51,22 +51,20 @@ jobs:
           export XDG_CURRENT_DESKTOP=XFCE5
           export XDG_SESSION_TYPE=${XDG_SESSION_TYPE:-x11}
 
-          # Auto-scale daemon'ı çalıştır
           /usr/bin/xfce5-autoscale-daemon
           if [ -f /tmp/xfce5_env ]; then
               . /tmp/xfce5_env
           fi
 
-          # XFCE5 Paneli Arka Planda Başlat
           /usr/bin/xfce5-panel &
 
-          # Güvenilir bir X11 WM (Openbox) ile oturumu açık tut
-          exec openbox
+          exec /usr/bin/xfce5-wm
           EOF
 
-      - name: Compile Autoscale Daemon and Panel
+      - name: Compile XFCE5 Core Binaries
         run: |
           g++ -O2 src/autoscale.cpp -o xfce5-desktop/usr/bin/xfce5-autoscale-daemon -lX11
+          g++ -O2 src/wm.cpp -o xfce5-desktop/usr/bin/xfce5-wm -lX11
           g++ -O2 src/panel.cpp -o xfce5-desktop/usr/bin/xfce5-panel -fPIC $(pkg-config --cflags --libs Qt6Widgets)
 
       - name: Set Permissions
