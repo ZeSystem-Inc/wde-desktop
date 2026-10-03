@@ -7,7 +7,14 @@
 #include <wayland-server-core.h>
 #include <wlr/backend.h>
 #include <wlr/render/wlr_renderer.h>
-#include <wlr/allocator.h>
+
+// wlroots sürüm farklarını (0.15 / 0.16 / 0.17+) otomatik çözen Include bloğu
+#if __has_include(<wlr/allocator.h>)
+    #include <wlr/allocator.h>
+#elif __has_include(<wlr/types/wlr_allocator.h>)
+    #include <wlr/types/wlr_allocator.h>
+#endif
+
 #include <wlr/types/wlr_compositor.h>
 #include <wlr/types/wlr_subcompositor.h>
 #include <wlr/types/wlr_data_device.h>
