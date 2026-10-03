@@ -1,3 +1,5 @@
+#define WLR_USE_UNSTABLE
+
 #include <iostream>
 #include <cstdlib>
 #include <wayland-server-core.h>
