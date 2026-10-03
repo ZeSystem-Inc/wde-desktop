@@ -1,6 +1,7 @@
 #include <gtk/gtk.h>
 #include <gdk/gdkx.h>
 #include <X11/Xlib.h>
+#include <X11/Xatom.h>
 #include <ctime>
 #include <cstdlib>
 #include <unistd.h>
@@ -17,12 +18,18 @@ void make_x11_dock(GtkWidget *widget) {
     XChangeProperty(display, xid, net_wm_window_type, XA_ATOM, 32,
                     PropModeReplace, (unsigned char *)&net_wm_window_type_dock, 1);
 
+    // Panelin boyutu kadar alanın pencerelerce kapatılmasını önleme (Strut Reservation)
     Atom net_wm_strut_partial = XInternAtom(display, "_NET_WM_STRUT_PARTIAL", False);
     
-    int screen_height = gdk_screen_height();
+    GdkDisplay *gdk_display = gdk_display_get_default();
+    GdkMonitor *monitor = gdk_display_get_primary_monitor(gdk_display);
+    if (!monitor) monitor = gdk_display_get_monitor(gdk_display, 0);
+
+    GdkRectangle geometry;
+    gdk_monitor_get_geometry(monitor, &geometry);
+
     int panel_height = 36;
-    
-    long strut[12] = {0, 0, 0, panel_height, 0, 0, 0, 0, 0, 0, 0, (long)gdk_screen_width()};
+    long strut[12] = {0, 0, 0, panel_height, 0, 0, 0, 0, 0, 0, 0, (long)geometry.width};
     
     XChangeProperty(display, xid, net_wm_strut_partial, XA_CARDINAL, 32,
                     PropModeReplace, (unsigned char *)strut, 12);
@@ -48,15 +55,21 @@ static void launch_start_menu(GtkWidget *widget, gpointer data) {
 int main(int argc, char *argv[]) {
     gtk_init(&argc, &argv);
 
+    GdkDisplay *gdk_display = gdk_display_get_default();
+    GdkMonitor *monitor = gdk_display_get_primary_monitor(gdk_display);
+    if (!monitor) monitor = gdk_display_get_monitor(gdk_display, 0);
+
+    GdkRectangle geometry;
+    gdk_monitor_get_geometry(monitor, &geometry);
+
     GtkWidget *window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
     gtk_window_set_decorated(GTK_WINDOW(window), FALSE);
-    gtk_window_set_default_size(GTK_WINDOW(window), gdk_screen_width(), 36);
-    gtk_window_move(GTK_WINDOW(window), 0, gdk_screen_height() - 36);
+    gtk_window_set_default_size(GTK_WINDOW(window), geometry.width, 36);
+    gtk_window_move(GTK_WINDOW(window), 0, geometry.height - 36);
 
     GtkWidget *box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 8);
     gtk_container_set_border_width(GTK_CONTAINER(box), 2);
 
-    // Windows Başlat Butonu
     GtkWidget *btn_start = gtk_button_new_with_label(" 🪟 Başlat ");
     g_signal_connect(btn_start, "clicked", G_CALLBACK(launch_start_menu), NULL);
     gtk_box_pack_start(GTK_BOX(box), btn_start, FALSE, FALSE, 0);
