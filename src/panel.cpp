@@ -14,7 +14,6 @@ int main(int argc, char *argv[]) {
     QWidget panel;
     panel.setWindowTitle("XFCE5 Panel");
     
-    // Paneli ekranın üst kısmına sabit bir şerit yapalım
     panel.setFixedHeight(40);
     
     QHBoxLayout *layout = new QHBoxLayout(&panel);
