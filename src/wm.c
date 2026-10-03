@@ -8,6 +8,7 @@
 #include <wayland-server-core.h>
 #include <wlr/backend.h>
 #include <wlr/render/wlr_renderer.h>
+#include <wlr/allocator/allocator.h>
 #include <wlr/types/wlr_compositor.h>
 #include <wlr/types/wlr_data_device.h>
 #include <wlr/types/wlr_subcompositor.h>
@@ -19,6 +20,7 @@ struct xfce5_server {
     struct wl_display *wl_display;
     struct wlr_backend *backend;
     struct wlr_renderer *renderer;
+    struct wlr_allocator *allocator;
     struct wl_listener new_output;
 };
 
@@ -48,7 +50,8 @@ static void server_new_output(struct wl_listener *listener, void *data) {
     struct xfce5_server *server = wl_container_of(listener, server, new_output);
     struct wlr_output *wlr_output = (struct wlr_output *)data;
 
-    wlr_output_init_render(wlr_output, server->renderer, NULL);
+    // Doğru imza: (output, allocator, renderer)
+    wlr_output_init_render(wlr_output, server->allocator, server->renderer);
 
     if (!wl_list_empty(&wlr_output->modes)) {
         struct wlr_output_mode *mode = wlr_output_preferred_mode(wlr_output);
@@ -82,7 +85,17 @@ int main(int argc, char *argv[]) {
     }
 
     server.renderer = wlr_renderer_autocreate(server.backend);
+    if (!server.renderer) {
+        fprintf(stderr, "[XFCE5-WM] Renderer oluşturulamadı!\n");
+        return 1;
+    }
     wlr_renderer_init_wl_display(server.renderer, server.wl_display);
+
+    server.allocator = wlr_allocator_autocreate(server.backend, server.renderer);
+    if (!server.allocator) {
+        fprintf(stderr, "[XFCE5-WM] Allocator oluşturulamadı!\n");
+        return 1;
+    }
 
     wlr_compositor_create(server.wl_display, 5, server.renderer);
     wlr_subcompositor_create(server.wl_display);
@@ -98,7 +111,7 @@ int main(int argc, char *argv[]) {
         wlr_backend_destroy(server.backend);
         return 1;
     }
-    
+
     FILE *f = fopen("/tmp/xfce5_wayland_socket", "w");
     if (f) {
         fprintf(f, "%s", socket);
