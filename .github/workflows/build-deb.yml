@@ -22,7 +22,7 @@ jobs:
         run: |
           sudo apt update
           sudo apt install -y build-essential gcc g++ pkg-config \
-                              libwlroots-dev libwayland-dev wayland-protocols \
+                              libwlroots-dev libwayland-dev wayland-protocols libwayland-bin \
                               libgtk-3-dev libgtk-layer-shell-dev
 
       - name: Create Package Directory Structure
@@ -53,6 +53,7 @@ jobs:
           DesktopNames=XFCE5;XFCE;GTK;
           EOF
 
+          # XFCE5 Session Script
           cat << 'EOF' > xfce5-desktop/usr/bin/xfce5-session
           #!/bin/sh
           exec > /tmp/xfce5-session.log 2>&1
@@ -81,10 +82,17 @@ jobs:
 
       - name: Compile Core Binaries (C & C++)
         run: |
-          gcc src/wm.c -o xfce5-desktop/usr/bin/xfce5-wm $(pkg-config --cflags --libs wayland-server wlroots)
+          # 1. Wayland XDG-Shell Protokol Dosyalarını Üret
+          wayland-scanner server-header /usr/share/wayland-protocols/stable/xdg-shell/xdg-shell.xml xdg-shell-protocol.h
+          wayland-scanner private-code /usr/share/wayland-protocols/stable/xdg-shell/xdg-shell.xml xdg-shell-protocol.c
 
+          # 2. Custom Wayland WM Derleme (C)
+          gcc -DWLR_USE_UNSTABLE -I. src/wm.c xdg-shell-protocol.c -o xfce5-desktop/usr/bin/xfce5-wm $(pkg-config --cflags --libs wayland-server wlroots)
+
+          # 3. Autoscale Daemon Derleme (C++)
           g++ src/autoscale.cpp -o xfce5-desktop/usr/bin/xfce5-autoscale-daemon
 
+          # 4. GTK3 Layer-Shell Panel Derleme (C++)
           g++ src/panel.cpp -o xfce5-desktop/usr/bin/xfce5-panel $(pkg-config --cflags --libs gtk+-3.0 gtk-layer-shell-0)
 
       - name: Set Permissions
