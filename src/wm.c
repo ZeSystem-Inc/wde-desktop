@@ -69,7 +69,8 @@ static void server_new_output(struct wl_listener *listener, void *data) {
     wl_signal_add(&wlr_output->events.frame, &output->frame);
 
     wlr_output_layout_add_auto(server->output_layout, wlr_output);
-    wlr_scene_output_create(server.scene, wlr_output);
+    
+    wlr_scene_output_create(server->scene, wlr_output);
 }
 
 int main(int argc, char *argv[]) {
@@ -88,6 +89,7 @@ int main(int argc, char *argv[]) {
         fprintf(stderr, "[XFCE5-WM] HATA: GPU/DRM Backend oluşturulamadı! (Sürücü veya DRM erişim izni yetersiz)\n");
         return 1;
     }
+
     server.renderer = wlr_renderer_autocreate(server.backend);
     if (!server.renderer) {
         fprintf(stderr, "[XFCE5-WM] HATA: GPU Renderer bağlamı oluşturulamadı!\n");
@@ -95,6 +97,7 @@ int main(int argc, char *argv[]) {
     }
     wlr_renderer_init_wl_display(server.renderer, server.wl_display);
 
+    // GBM Memory Allocator
     server.allocator = wlr_allocator_autocreate(server.backend, server.renderer);
     if (!server.allocator) {
         fprintf(stderr, "[XFCE5-WM] HATA: GBM Allocator oluşturulamadı!\n");
@@ -131,10 +134,10 @@ int main(int argc, char *argv[]) {
         fprintf(stderr, "[XFCE5-WM] HATA: DRM Backend başlatılamadı!\n");
         return 1;
     }
-
+    
     wl_display_run(server.wl_display);
 
     wl_display_destroy_clients(server.wl_display);
     wl_display_destroy(server.wl_display);
     return 0;
-}
+} 
