@@ -52,7 +52,6 @@ static void output_frame(struct wl_listener *listener, void *data) {
     wlr_renderer_clear(renderer, color);
     
     wlr_renderer_end(renderer);
-
     wlr_output_commit(output->wlr_output);
 }
 
@@ -109,7 +108,6 @@ int main(int argc, char *argv[]) {
     wlr_compositor_create(server.wl_display, 5, server.renderer);
     wlr_subcompositor_create(server.wl_display);
     wlr_data_device_manager_create(server.wl_display);
-
     wlr_xdg_shell_create(server.wl_display, 3);
 
     server.new_output.notify = server_new_output;
@@ -117,6 +115,7 @@ int main(int argc, char *argv[]) {
 
     const char *socket = wl_display_add_socket_auto(server.wl_display);
     if (!socket) {
+        fprintf(stderr, "[XFCE5-WM] Wayland soketi açılamadı!\n");
         wlr_backend_destroy(server.backend);
         return 1;
     }
@@ -128,9 +127,10 @@ int main(int argc, char *argv[]) {
     }
 
     setenv("WAYLAND_DISPLAY", socket, 1);
-    printf("[XFCE5-WM] Wayland Compositor başlatıldı. Socket: %s\n", socket);
+    printf("[XFCE5-WM] Compositor başlatıldı. Socket: %s\n", socket);
 
     if (!wlr_backend_start(server.backend)) {
+        fprintf(stderr, "[XFCE5-WM] Backend başlatılamadı!\n");
         wlr_backend_destroy(server.backend);
         wl_display_destroy(server.wl_display);
         return 1;
