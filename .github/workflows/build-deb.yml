@@ -3,7 +3,12 @@ name: Build XFCE5 Package
 on:
   push:
     branches: [ "main", "master" ]
+    tags:
+      - 'v*'
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   build:
@@ -54,7 +59,6 @@ jobs:
           #!/bin/sh
           export XDG_CURRENT_DESKTOP=XFCE5
           export XDG_SESSION_TYPE=wayland
-          export GDK_BACKEND=wayland,x11
           export GTK_THEME=Adwaita
 
           export WLR_RENDERER=pixman
@@ -65,22 +69,35 @@ jobs:
               eval $(dbus-launch --sh-syntax --exit-with-session)
           fi
 
+          rm -f /tmp/xfce5_wayland_socket
+
           /usr/bin/xfce5-autoscale-daemon
           if [ -f /tmp/xfce5_env ]; then
               . /tmp/xfce5_env
           fi
 
           /usr/bin/xfce5-wm &
-          sleep 1
 
-          exec /usr/bin/xfce5-panel
+          i=0
+          while [ ! -f /tmp/xfce5_wayland_socket ] && [ $i -lt 50 ]; do
+              sleep 0.1
+              i=$((i+1))
+          done
+
+          if [ -f /tmp/xfce5_wayland_socket ]; then
+              export WAYLAND_DISPLAY=$(cat /tmp/xfce5_wayland_socket)
+          fi
+
+          /usr/bin/xfce5-panel &
+
+          wait $(pgrep -n xfce5-wm)
           EOF
 
       - name: Compile Native Core Binaries
         run: |
-          g++ -O2 src/autoscale.cpp -o xfce5-desktop/usr/bin/xfce5-autoscale-daemon
-          gcc -O2 -DWLR_USE_UNSTABLE -I. src/wm.c -o xfce5-desktop/usr/bin/xfce5-wm $(pkg-config --cflags --libs wayland-server wlroots)
-          g++ -O2 src/panel.cpp -o xfce5-desktop/usr/bin/xfce5-panel $(pkg-config --cflags --libs gtk+-3.0)
+          g++ src/autoscale.cpp -o xfce5-desktop/usr/bin/xfce5-autoscale-daemon
+          gcc -DWLR_USE_UNSTABLE -I. src/wm.c -o xfce5-desktop/usr/bin/xfce5-wm $(pkg-config --cflags --libs wayland-server wlroots)
+          g++ src/panel.cpp -o xfce5-desktop/usr/bin/xfce5-panel $(pkg-config --cflags --libs gtk+-3.0)
 
       - name: Set Permissions
         run: |
@@ -96,3 +113,22 @@ jobs:
         with:
           name: xfce5-deb
           path: xfce5_5.0.0-alpha_amd64.deb
+
+      - name: Publish to GitHub Releases (Tag Push)
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: xfce5_5.0.0-alpha_amd64.deb
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish Nightly Release (Main Push)
+        uses: softprops/action-gh-release@v2
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+        with:
+          tag_name: nightly
+          name: "XFCE5 Nightly Build"
+          prerelease: true
+          files: xfce5_5.0.0-alpha_amd64.deb
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
