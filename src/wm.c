@@ -1,11 +1,13 @@
+#ifndef WLR_USE_UNSTABLE
 #define WLR_USE_UNSTABLE
+#endif
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <wayland-server-core.h>
 #include <wlr/backend.h>
 #include <wlr/render/wlr_renderer.h>
-#include <wlr/types/wlr_allocator.h>
+#include <wlr/allocator.h>
 #include <wlr/types/wlr_compositor.h>
 #include <wlr/types/wlr_subcompositor.h>
 #include <wlr/types/wlr_data_device.h>
@@ -44,7 +46,7 @@ static void server_new_output(struct wl_listener *listener, void *data) {
 }
 
 int main(int argc, char *argv[]) {
-    printf("[WDE-WM] Windows Desktop Environment Wayland Compositor Başlatılıyor...\n");
+    printf("[WDE-WM] Windows Desktop Environment Compositor Başlatılıyor...\n");
 
     struct wde_server server = {0};
 
