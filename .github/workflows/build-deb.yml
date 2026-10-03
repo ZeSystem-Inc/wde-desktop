@@ -16,7 +16,7 @@ jobs:
       - name: Install Build Dependencies
         run: |
           sudo apt update
-          sudo apt install -y g++ libx11-dev
+          sudo apt install -y g++ libx11-dev qt6-base-dev qt6-base-dev-tools
 
       - name: Create Package Directory Structure
         run: |
@@ -33,8 +33,8 @@ jobs:
           Priority: optional
           Architecture: amd64
           Maintainer: Salih <salih@example.com>
-          Depends: libx11-6, libwayland-client0, rofi, waybar
-          Description: XFCE5 Desktop Environment with native Wayland/X11 and auto-scaling support.
+          Depends: libx11-6, qt6-base-dev, rofi, x11-xserver-utils, openbox
+          Description: XFCE5 Desktop Environment with native Wayland/X11, Qt6 Panel, and auto-scaling support.
           EOF
 
           cat << 'EOF' > xfce5-desktop/usr/share/xsessions/xfce5.desktop
@@ -49,29 +49,25 @@ jobs:
           cat << 'EOF' > xfce5-desktop/usr/bin/xfce5-session
           #!/bin/sh
           export XDG_CURRENT_DESKTOP=XFCE5
-          export XDG_SESSION_TYPE=${XDG_SESSION_TYPE:-wayland}
+          export XDG_SESSION_TYPE=${XDG_SESSION_TYPE:-x11}
 
-          if [ "$XDG_SESSION_TYPE" = "wayland" ]; then
-              export GDK_BACKEND=wayland,x11
-              export QT_QPA_PLATFORM="wayland;xcb"
-              export MOZ_ENABLE_WAYLAND=1
-          fi
-
+          # Auto-scale daemon'ı çalıştır
           /usr/bin/xfce5-autoscale-daemon
           if [ -f /tmp/xfce5_env ]; then
               . /tmp/xfce5_env
           fi
 
-          if command -v wayfire >/dev/null 2>&1; then
-              exec wayfire
-          else
-              exec labwc
-          fi
+          # XFCE5 Paneli Arka Planda Başlat
+          /usr/bin/xfce5-panel &
+
+          # Güvenilir bir X11 WM (Openbox) ile oturumu açık tut
+          exec openbox
           EOF
 
-      - name: Compile Autoscale Daemon
+      - name: Compile Autoscale Daemon and Panel
         run: |
           g++ -O2 src/autoscale.cpp -o xfce5-desktop/usr/bin/xfce5-autoscale-daemon -lX11
+          g++ -O2 src/panel.cpp -o xfce5-desktop/usr/bin/xfce5-panel -fPIC $(pkg-config --cflags --libs Qt6Widgets)
 
       - name: Set Permissions
         run: |
