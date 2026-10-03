@@ -16,6 +16,8 @@
 #include <wlr/types/wlr_output.h>
 #include <wlr/types/wlr_output_layout.h>
 #include <wlr/types/wlr_scene.h>
+#include <wlr/types/wlr_xdg_shell.h>
+#include <wlr/types/wlr_seat.h>
 #include <wlr/util/log.h>
 
 struct xfce5_server {
@@ -24,8 +26,13 @@ struct xfce5_server {
     struct wlr_renderer *renderer;
     struct wlr_allocator *allocator;
     struct wlr_scene *scene;
+    struct wlr_scene_output_layout *scene_layout;
     struct wlr_output_layout *output_layout;
+    struct wlr_xdg_shell *xdg_shell;
+    struct wlr_seat *seat;
+    
     struct wl_listener new_output;
+    struct wl_listener new_xdg_surface;
 };
 
 struct xfce5_output {
@@ -69,8 +76,16 @@ static void server_new_output(struct wl_listener *listener, void *data) {
     wl_signal_add(&wlr_output->events.frame, &output->frame);
 
     wlr_output_layout_add_auto(server->output_layout, wlr_output);
-    
     wlr_scene_output_create(server->scene, wlr_output);
+}
+
+static void server_new_xdg_surface(struct wl_listener *listener, void *data) {
+    struct xfce5_server *server = wl_container_of(listener, server, new_xdg_surface);
+    struct wlr_xdg_surface *xdg_surface = data;
+
+    if (xdg_surface->role == WLR_XDG_SURFACE_ROLE_TOPLEVEL) {
+        wlr_scene_xdg_surface_create(&server->scene->tree, xdg_surface);
+    }
 }
 
 int main(int argc, char *argv[]) {
@@ -86,21 +101,20 @@ int main(int argc, char *argv[]) {
 
     server.backend = wlr_backend_autocreate(server.wl_display, NULL);
     if (!server.backend) {
-        fprintf(stderr, "[XFCE5-WM] HATA: GPU/DRM Backend oluşturulamadı! (Sürücü veya DRM erişim izni yetersiz)\n");
+        fprintf(stderr, "[XFCE5-WM] HATA: GPU/DRM Backend oluşturulamadı!\n");
         return 1;
     }
 
     server.renderer = wlr_renderer_autocreate(server.backend);
     if (!server.renderer) {
-        fprintf(stderr, "[XFCE5-WM] HATA: GPU Renderer bağlamı oluşturulamadı!\n");
+        fprintf(stderr, "[XFCE5-WM] HATA: Renderer oluşturulamadı!\n");
         return 1;
     }
     wlr_renderer_init_wl_display(server.renderer, server.wl_display);
 
-    // GBM Memory Allocator
     server.allocator = wlr_allocator_autocreate(server.backend, server.renderer);
     if (!server.allocator) {
-        fprintf(stderr, "[XFCE5-WM] HATA: GBM Allocator oluşturulamadı!\n");
+        fprintf(stderr, "[XFCE5-WM] HATA: Allocator oluşturulamadı!\n");
         return 1;
     }
 
@@ -108,9 +122,19 @@ int main(int argc, char *argv[]) {
     wlr_subcompositor_create(server.wl_display);
     wlr_data_device_manager_create(server.wl_display);
 
+    server.seat = wlr_seat_create(server.wl_display, "seat0");
+
     server.output_layout = wlr_output_layout_create();
     server.scene = wlr_scene_create();
-    wlr_scene_attach_output_layout(server.scene, server.output_layout);
+    
+    float bg_color[4] = {0.11f, 0.11f, 0.18f, 1.0f};
+    wlr_scene_rect_create(&server.scene->tree, 3840, 2160, bg_color);
+
+    server.scene_layout = wlr_scene_attach_output_layout(server.scene, server.output_layout);
+
+    server.xdg_shell = wlr_xdg_shell_create(server.wl_display, 3);
+    server.new_xdg_surface.notify = server_new_xdg_surface;
+    wl_signal_add(&server.xdg_shell->events.new_surface, &server.new_xdg_surface);
 
     server.new_output.notify = server_new_output;
     wl_signal_add(&server.backend->events.new_output, &server.new_output);
@@ -128,16 +152,16 @@ int main(int argc, char *argv[]) {
     }
 
     setenv("WAYLAND_DISPLAY", socket, 1);
-    printf("[XFCE5-WM] GPU ile bağlantı kuruldu. Socket: %s\n", socket);
+    printf("[XFCE5-WM] Sunucu hazır. Socket: %s\n", socket);
 
     if (!wlr_backend_start(server.backend)) {
-        fprintf(stderr, "[XFCE5-WM] HATA: DRM Backend başlatılamadı!\n");
+        fprintf(stderr, "[XFCE5-WM] HATA: Backend başlatılamadı!\n");
         return 1;
     }
-    
+
     wl_display_run(server.wl_display);
 
     wl_display_destroy_clients(server.wl_display);
     wl_display_destroy(server.wl_display);
     return 0;
-} 
+}
