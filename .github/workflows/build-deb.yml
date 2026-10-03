@@ -57,13 +57,13 @@ jobs:
 
           cat << 'EOF' > xfce5-desktop/usr/bin/xfce5-session
           #!/bin/sh
+          exec > /tmp/xfce5-session.log 2>&1
+          echo "[XFCE5] Oturum Başlatılıyor..."
+
           export XDG_CURRENT_DESKTOP=XFCE5:XFCE
           export XDG_SESSION_DESKTOP=xfce5
           export XDG_SESSION_TYPE=wayland
           export GTK_THEME=Adwaita
-
-          exec > /tmp/xfce5-session.log 2>&1
-          echo "XFCE5 Oturumu Başlatılıyor..."
 
           if [ -z "$DBUS_SESSION_BUS_ADDRESS" ]; then
               eval $(dbus-launch --sh-syntax --exit-with-session)
@@ -86,14 +86,17 @@ jobs:
               i=$((i+1))
           done
 
-          if [ -f /tmp/xfce5_wayland_socket ]; me
+          if [ -f /tmp/xfce5_wayland_socket ]; then
               export WAYLAND_DISPLAY=$(cat /tmp/xfce5_wayland_socket)
-              echo "Wayland Soketi: $WAYLAND_DISPLAY"
+              echo "[XFCE5] Wayland Soketi Bulundu: $WAYLAND_DISPLAY"
+          else
+              echo "[XFCE5] HATA: Wayland soketi oluşturulamadı!"
+              wait $WM_PID
+              exit 1
           fi
 
           /usr/bin/xfce5-panel > /tmp/xfce5-panel.log 2>&1 &
 
-          # WM çalıştığı sürece oturumu açık tut
           wait $WM_PID
           EOF
 
