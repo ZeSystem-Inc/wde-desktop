@@ -1,4 +1,4 @@
-name: Build WDE Package
+name: Build WDE Package (X11)
 
 on:
   push:
@@ -18,20 +18,20 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install Build Dependencies
+      - name: Install X11 Build Dependencies
         run: |
           sudo apt update
           sudo apt install -y build-essential gcc g++ pkg-config \
-                              libwlroots-dev libwayland-dev wayland-protocols libwayland-bin \
-                              libgtk-3-dev libgtk-layer-shell-dev
+                              libx11-dev libxft-dev libxinerama-dev \
+                              libgtk-3-dev
 
       - name: Create Package Directory Structure
         run: |
           mkdir -p wde-desktop/usr/bin
-          mkdir -p wde-desktop/usr/share/wayland-sessions
+          mkdir -p wde-desktop/usr/share/xsessions
           mkdir -p wde-desktop/DEBIAN
 
-      - name: Generate Package Control & Session Files
+      - name: Generate Control & Session Files
         run: |
           cat << 'EOF' > wde-desktop/DEBIAN/control
           Package: wde
@@ -40,14 +40,14 @@ jobs:
           Priority: optional
           Architecture: amd64
           Maintainer: Salih <salih@example.com>
-          Depends: libgtk-3-0, libgtk-layer-shell0, rofi, dbus-x11, adwaita-icon-theme, libwayland-server0
-          Description: Windows Desktop Environment (WDE) - Lightweight Wayland Desktop Environment.
+          Depends: libx11-6, libgtk-3-0, rofi, dbus-x11, adwaita-icon-theme
+          Description: Windows Desktop Environment (WDE) - Lightweight X11 Desktop Environment.
           EOF
 
-          cat << 'EOF' > wde-desktop/usr/share/wayland-sessions/wde.desktop
+          cat << 'EOF' > wde-desktop/usr/share/xsessions/wde.desktop
           [Desktop Entry]
           Name=WDE (Windows Desktop Environment)
-          Comment=Lightweight Windows-like Wayland Desktop Environment
+          Comment=Lightweight Windows-like X11 Desktop Environment
           Exec=/usr/bin/wde-session
           Type=Application
           DesktopNames=WDE;GTK;
@@ -56,18 +56,12 @@ jobs:
           cat << 'EOF' > wde-desktop/usr/bin/wde-session
           #!/bin/sh
           exec > /tmp/wde-session.log 2>&1
-          echo "[WDE] Oturum Başlatılıyor..."
+          echo "[WDE] X11 Oturumu Başlatılıyor..."
 
           export XDG_CURRENT_DESKTOP=WDE
           export XDG_SESSION_DESKTOP=wde
-          export XDG_SESSION_TYPE=wayland
+          export XDG_SESSION_TYPE=x11
           export GTK_THEME=Adwaita-dark
-          export GDK_BACKEND=wayland
-          export QT_QPA_PLATFORM=wayland
-          export MOZ_ENABLE_WAYLAND=1
-
-          export WLR_RENDERER=pixman
-          export WLR_NO_HARDWARE_CURSORS=1
 
           if [ -z "$DBUS_SESSION_BUS_ADDRESS" ]; then
               eval $(dbus-launch --sh-syntax --exit-with-session)
@@ -79,20 +73,13 @@ jobs:
           exec /usr/bin/wde-wm
           EOF
 
-      - name: Compile Core Binaries
+      - name: Compile Core Binaries (X11)
         run: |
-          # 1. Wayland Protocol Headers (XDG Shell)
-          wayland-scanner server-header /usr/share/wayland-protocols/stable/xdg-shell/xdg-shell.xml xdg-shell-protocol.h
-          wayland-scanner private-code /usr/share/wayland-protocols/stable/xdg-shell/xdg-shell.xml xdg-shell-protocol.c
+          gcc src/wm.c -o wde-desktop/usr/bin/wde-wm -lX11
 
-          # 2. WDE Compositor (C)
-          gcc -I. src/wm.c xdg-shell-protocol.c -o wde-desktop/usr/bin/wde-wm $(pkg-config --cflags --libs wayland-server wlroots)
-
-          # 3. WDE Autoscale Daemon (C++)
           g++ src/autoscale.cpp -o wde-desktop/usr/bin/wde-autoscale-daemon
 
-          # 4. WDE Taskbar Panel (C++)
-          g++ src/panel.cpp -o wde-desktop/usr/bin/wde-panel $(pkg-config --cflags --libs gtk+-3.0 gtk-layer-shell-0)
+          g++ src/panel.cpp -o wde-desktop/usr/bin/wde-panel $(pkg-config --cflags --libs gtk+-3.0)
 
       - name: Set Executable Permissions
         run: |
@@ -114,7 +101,7 @@ jobs:
         if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
         with:
           tag_name: nightly
-          name: "WDE Nightly Build"
+          name: "WDE X11 Nightly Build"
           prerelease: true
           files: wde_1.0.0-alpha_amd64.deb
         env:
