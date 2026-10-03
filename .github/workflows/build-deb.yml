@@ -42,7 +42,7 @@ jobs:
           Priority: optional
           Architecture: amd64
           Maintainer: Salih <salih@example.com>
-          Depends: libgtk-3-0, rofi, libwayland-server0, libwlroots10, dbus-x11, adwaita-icon-theme
+          Depends: libgtk-3-0, rofi, libwayland-server0, dbus-x11, adwaita-icon-theme
           Description: Native GTK3 and Wayland Desktop Environment XFCE5.
           EOF
 
@@ -52,18 +52,18 @@ jobs:
           Comment=XFCE5 Native GTK3 Wayland Desktop
           Exec=/usr/bin/xfce5-session
           Type=Application
-          DesktopNames=XFCE5;GTK;
+          DesktopNames=XFCE5;XFCE;GTK;
           EOF
 
           cat << 'EOF' > xfce5-desktop/usr/bin/xfce5-session
           #!/bin/sh
-          export XDG_CURRENT_DESKTOP=XFCE5
+          export XDG_CURRENT_DESKTOP=XFCE5:XFCE
+          export XDG_SESSION_DESKTOP=xfce5
           export XDG_SESSION_TYPE=wayland
           export GTK_THEME=Adwaita
 
-          export WLR_RENDERER=pixman
-          export WLR_NO_HARDWARE_CURSORS=1
-          export LIBGL_ALWAYS_SOFTWARE=1
+          exec > /tmp/xfce5-session.log 2>&1
+          echo "XFCE5 Oturumu Başlatılıyor..."
 
           if [ -z "$DBUS_SESSION_BUS_ADDRESS" ]; then
               eval $(dbus-launch --sh-syntax --exit-with-session)
@@ -71,26 +71,30 @@ jobs:
 
           rm -f /tmp/xfce5_wayland_socket
 
-          /usr/bin/xfce5-autoscale-daemon
+          /usr/bin/xfce5-autoscale-daemon &
+
           if [ -f /tmp/xfce5_env ]; then
               . /tmp/xfce5_env
           fi
 
-          /usr/bin/xfce5-wm &
+          /usr/bin/xfce5-wm > /tmp/xfce5-wm.log 2>&1 &
+          WM_PID=$!
 
           i=0
-          while [ ! -f /tmp/xfce5_wayland_socket ] && [ $i -lt 50 ]; do
+          while [ ! -f /tmp/xfce5_wayland_socket ] && [ $i -lt 100 ]; do
               sleep 0.1
               i=$((i+1))
           done
 
-          if [ -f /tmp/xfce5_wayland_socket ]; then
+          if [ -f /tmp/xfce5_wayland_socket ]; me
               export WAYLAND_DISPLAY=$(cat /tmp/xfce5_wayland_socket)
+              echo "Wayland Soketi: $WAYLAND_DISPLAY"
           fi
 
-          /usr/bin/xfce5-panel &
+          /usr/bin/xfce5-panel > /tmp/xfce5-panel.log 2>&1 &
 
-          wait $(pgrep -n xfce5-wm)
+          # WM çalıştığı sürece oturumu açık tut
+          wait $WM_PID
           EOF
 
       - name: Compile Native Core Binaries
