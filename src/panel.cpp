@@ -15,15 +15,17 @@ int main(int argc, char *argv[]) {
 
     QWidget panel;
     panel.setWindowTitle("XFCE5 Panel");
-    panel.setFixedHeight(40);
-    panel.setStyleSheet("background-color: #2e3440; color: #eceff4; font-family: sans-serif;");
+    panel.setFixedHeight(38);
+    panel.setStyleSheet(
+        "QWidget { background-color: #242933; color: #d8dee9; font-family: sans-serif; }"
+    );
     
     QHBoxLayout *layout = new QHBoxLayout(&panel);
-    layout->setContentsMargins(10, 0, 10, 0);
+    layout->setContentsMargins(8, 0, 8, 0);
 
     QPushButton *menuBtn = new QPushButton("❖ XFCE5 Menu");
     menuBtn->setStyleSheet(
-        "QPushButton { background-color: #5e81ac; color: white; font-weight: bold; padding: 6px 15px; border-radius: 4px; border: none; }"
+        "QPushButton { background-color: #5e81ac; color: white; font-weight: bold; padding: 5px 12px; border-radius: 4px; border: none; }"
         "QPushButton:hover { background-color: #81a1c1; }"
     );
     QObject::connect(menuBtn, &QPushButton::clicked, []() {
@@ -32,8 +34,8 @@ int main(int argc, char *argv[]) {
 
     QPushButton *termBtn = new QPushButton("💻 Terminal");
     termBtn->setStyleSheet(
-        "QPushButton { background-color: #434c5e; color: white; padding: 5px 12px; border-radius: 4px; border: none; }"
-        "QPushButton:hover { background-color: #4c566a; }"
+        "QPushButton { background-color: #3b4252; color: #eceff4; padding: 5px 10px; border-radius: 4px; border: none; }"
+        "QPushButton:hover { background-color: #434c5e; }"
     );
     QObject::connect(termBtn, &QPushButton::clicked, []() {
         QProcess::startDetached("xterm", QStringList());
