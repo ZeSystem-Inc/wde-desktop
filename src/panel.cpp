@@ -1,14 +1,15 @@
 #include <gtk/gtk.h>
 #include <gtk-layer-shell/gtk-layer-shell.h>
 #include <ctime>
-#include <iostream>
+#include <cstdlib>
+#include <unistd.h>
 
 static gboolean update_clock(gpointer user_data) {
     GtkLabel *label = GTK_LABEL(user_data);
     time_t now = time(0);
     struct tm *ltm = localtime(&now);
     char buffer[64];
-    strftime(buffer, sizeof(buffer), "  %H:%M:%S  |  %d %b %Y  ", ltm);
+    strftime(buffer, sizeof(buffer), "%H:%M:%S | %d %b %Y", ltm);
     gtk_label_set_text(label, buffer);
     return TRUE;
 }
@@ -21,7 +22,7 @@ static void launch_rofi(GtkWidget *widget, gpointer data) {
 }
 
 static void logout_session(GtkWidget *widget, gpointer data) {
-    system("pkill -f xfce5-session");
+    system("pkill -f labwc; pkill -f xfce5-session");
 }
 
 int main(int argc, char *argv[]) {
@@ -39,29 +40,29 @@ int main(int argc, char *argv[]) {
         gtk_layer_set_anchor(GTK_WINDOW(window), GTK_LAYER_SHELL_EDGE_RIGHT, TRUE);
     }
 
-    GtkWidget *header_bar = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 10);
-    gtk_container_set_border_width(GTK_CONTAINER(header_bar), 6);
+    GtkWidget *box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 12);
+    gtk_container_set_border_width(GTK_CONTAINER(box), 4);
 
-    GtkWidget *btn_menu = gtk_button_new_with_label("  XFCE5 Menü ");
+    GtkWidget *btn_menu = gtk_button_new_with_label("  XFCE5  ");
     g_signal_connect(btn_menu, "clicked", G_CALLBACK(launch_rofi), NULL);
-    gtk_box_pack_start(GTK_BOX(header_bar), btn_menu, FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(box), btn_menu, FALSE, FALSE, 0);
 
     GtkWidget *lbl_clock = gtk_label_new("");
-    gtk_box_pack_start(GTK_BOX(header_bar), lbl_clock, TRUE, TRUE, 0);
+    gtk_box_pack_start(GTK_BOX(box), lbl_clock, TRUE, TRUE, 0);
     g_timeout_add_seconds(1, update_clock, lbl_clock);
     update_clock(lbl_clock);
 
     GtkWidget *btn_logout = gtk_button_new_with_label(" Çıkış ");
     g_signal_connect(btn_logout, "clicked", G_CALLBACK(logout_session), NULL);
-    gtk_box_pack_end(GTK_BOX(header_bar), btn_logout, FALSE, FALSE, 0);
+    gtk_box_pack_end(GTK_BOX(box), btn_logout, FALSE, FALSE, 0);
 
-    gtk_container_add(GTK_CONTAINER(window), header_bar);
+    gtk_container_add(GTK_CONTAINER(window), box);
 
     GtkCssProvider *provider = gtk_css_provider_new();
     gtk_css_provider_load_from_data(provider,
-        "window { background-color: #11111b; color: #cdd6f4; font-family: sans-serif; font-weight: bold; }\n"
-        "button { background-color: #313244; color: #cdd6f4; border-radius: 6px; border: none; padding: 4px 10px; }\n"
-        "button:hover { background-color: #45475a; }\n", -1, NULL);
+        "window { background-color: #1e1e2e; color: #cdd6f4; font-family: sans-serif; font-weight: bold; }\n"
+        "button { background-color: #313244; color: #cdd6f4; border-radius: 6px; border: none; padding: 4px 12px; }\n"
+        "button:hover { background-color: #45475a; color: #f5e0dc; }\n", -1, NULL);
 
     gtk_style_context_add_provider_for_screen(
         gdk_screen_get_default(),
