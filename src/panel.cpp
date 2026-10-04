@@ -46,14 +46,27 @@ static gboolean update_clock(gpointer user_data) {
 
 static void launch_start_menu(GtkWidget *widget, gpointer data) {
     if (fork() == 0) {
-        execlp("rofi", "rofi", "-show", "drun", "-theme-str", "window { location: south west; anchor: south west; x-offset: 5px; y-offset: -40px; }", NULL);
+        const char *rofi_theme = 
+            "* { background-color: transparent; text-color: #ffffff; font: 'Segoe UI 10'; }"
+            "window { location: south west; anchor: south west; x-offset: 6px; y-offset: -42px; "
+            "width: 380px; height: 500px; background-color: #202020; border: 1px; border-color: #383838; "
+            "border-radius: 8px; padding: 12px; }"
+            "mainbox { children: [ entry, listview ]; spacing: 10px; }"
+            "entry { background-color: #2d2d2d; placeholder: 'Uygulama ara...'; placeholder-color: #888888; "
+            "padding: 10px; border-radius: 6px; border: 1px; border-color: #3f3f3f; }"
+            "listview { lines: 10; columns: 1; fixed-height: false; spacing: 4px; cycle: true; scrollbar: false; }"
+            "element { padding: 8px 12px; border-radius: 6px; }"
+            "element selected { background-color: #0078d4; text-color: #ffffff; }"
+            "element-text { vertical-align: 0.5; }";
+
+        execlp("rofi", "rofi", "-show", "drun", "-theme-str", rofi_theme, NULL);
         exit(0);
     }
 }
 
 static void launch_terminal(GtkWidget *widget, gpointer data) {
     if (fork() == 0) {
-        // Zsh çalıştıran varsayılan x-terminal-emulator veya st/kitty
+        // Zsh çalıştıran terminal
         execlp("x-terminal-emulator", "x-terminal-emulator", "-e", "zsh", NULL);
         exit(0);
     }
