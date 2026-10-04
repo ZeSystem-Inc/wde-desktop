@@ -18,7 +18,6 @@ void make_x11_dock(GtkWidget *widget) {
     XChangeProperty(display, xid, net_wm_window_type, XA_ATOM, 32,
                     PropModeReplace, (unsigned char *)&net_wm_window_type_dock, 1);
 
-    // Panelin boyutu kadar alanın pencerelerce kapatılmasını önleme (Strut Reservation)
     Atom net_wm_strut_partial = XInternAtom(display, "_NET_WM_STRUT_PARTIAL", False);
     
     GdkDisplay *gdk_display = gdk_display_get_default();
@@ -47,7 +46,8 @@ static gboolean update_clock(gpointer user_data) {
 
 static void launch_start_menu(GtkWidget *widget, gpointer data) {
     if (fork() == 0) {
-        execlp("rofi", "rofi", "-show", "drun", "-theme-str", "window {location: bottom left; anchor: bottom left; x-offset: 5px; y-offset: -40px;}", NULL);
+        // Rofi teması 'south west' olarak düzeltildi
+        execlp("rofi", "rofi", "-show", "drun", "-theme-str", "window { location: south west; anchor: south west; x-offset: 5px; y-offset: -40px; }", NULL);
         exit(0);
     }
 }
@@ -70,7 +70,7 @@ int main(int argc, char *argv[]) {
     GtkWidget *box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 8);
     gtk_container_set_border_width(GTK_CONTAINER(box), 2);
 
-    GtkWidget *btn_start = gtk_button_new_with_label(" 🪟 Başlat ");
+    GtkWidget *btn_start = gtk_button_new_with_label(" Başlat ");
     g_signal_connect(btn_start, "clicked", G_CALLBACK(launch_start_menu), NULL);
     gtk_box_pack_start(GTK_BOX(box), btn_start, FALSE, FALSE, 0);
 
