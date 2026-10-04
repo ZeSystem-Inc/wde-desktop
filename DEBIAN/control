@@ -4,5 +4,5 @@ Section: x11
 Priority: optional
 Architecture: amd64
 Maintainer: Salih <salih@example.com>
-Depends: libx11-6, libxrandr2, libgtk-3-0, rofi, dbus-x11, adwaita-icon-theme, zsh
+Depends: libx11-6, libxrandr2, libgtk-3-0, dbus-x11, adwaita-icon-theme, zsh, wine, picom, procps, psmisc, xdotool
 Description: Windows Desktop Environment (WDE) - Independent Lightweight X11 Desktop Environment.
