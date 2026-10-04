@@ -55,9 +55,10 @@ static gboolean update_clock(gpointer user_data) {
 }
 
 static void launch_start_menu(GtkWidget *widget, gpointer data) {
-    // Açık olan menüyü kapat/aç (Toggle)
-    int ret = system("killall wde-startmenu 2>/dev/null");
-    if (ret != 0) {
+    int check = system("pgrep -x wde-startmenu > /dev/null");
+    if (check == 0) {
+        system("pkill -x wde-startmenu");
+    } else {
         if (fork() == 0) {
             execlp("wde-startmenu", "wde-startmenu", NULL);
             execl("/usr/bin/wde-startmenu", "wde-startmenu", NULL);
@@ -75,7 +76,6 @@ static void launch_terminal(GtkWidget *widget, gpointer data) {
 
 int main(int argc, char *argv[]) {
     gtk_init(&argc, &argv);
-
     check_language();
 
     GdkDisplay *gdk_display = gdk_display_get_default();
