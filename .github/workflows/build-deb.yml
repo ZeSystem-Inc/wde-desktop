@@ -18,12 +18,12 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install X11, GTK & Zsh Build Dependencies
+      - name: Install Build Dependencies
         run: |
           sudo apt update
           sudo apt install -y build-essential gcc g++ pkg-config \
                               libx11-dev libxft-dev libxinerama-dev libxrandr-dev \
-                              libgtk-3-dev libglib2.0-dev zsh picom procps
+                              libgtk-3-dev libglib2.0-dev zsh picom procps psmisc
 
       - name: Create Package Directory Structure
         run: |
@@ -31,7 +31,7 @@ jobs:
           mkdir -p wde-desktop/usr/share/xsessions
           mkdir -p wde-desktop/DEBIAN
 
-      - name: Generate Control & Session Files
+      - name: Setup Debian Control & Session Desktop
         run: |
           cat << 'EOF' > wde-desktop/DEBIAN/control
           Package: wde
@@ -68,6 +68,7 @@ jobs:
               eval $(dbus-launch --sh-syntax --exit-with-session)
           fi
 
+          # Sanal makinede ekran kilitlenmesini ve yırtılmayı önleyen VSync modu
           picom --backend xrender --vsync -b
 
           /usr/bin/wde-autoscale-daemon &
@@ -76,20 +77,17 @@ jobs:
           exec /usr/bin/wde-wm
           EOF
 
-      - name: Compile Core Binaries (X11 & GTK)
+      - name: Compile Core Binaries directly from src/
         run: |
           gcc src/wm.c -o wde-desktop/usr/bin/wde-wm -lX11
           g++ src/autoscale.cpp -o wde-desktop/usr/bin/wde-autoscale-daemon -lX11 -lXrandr
           g++ -std=c++17 src/start_menu.cpp -o wde-desktop/usr/bin/wde-startmenu $(pkg-config --cflags --libs gtk+-3.0 gio-2.0 gdk-x11-3.0)
           g++ -std=c++17 src/panel.cpp -o wde-desktop/usr/bin/wde-panel $(pkg-config --cflags --libs gtk+-3.0 gdk-x11-3.0) -lX11
 
-      - name: Set Executable Permissions
+      - name: Set Permissions & Build DEB
         run: |
           chmod +x wde-desktop/usr/bin/*
           chmod 755 wde-desktop/DEBIAN/control
-
-      - name: Build DEB Package
-        run: |
           dpkg-deb --build wde-desktop wde_1.0.0-alpha_amd64.deb
 
       - name: Upload Artifact
