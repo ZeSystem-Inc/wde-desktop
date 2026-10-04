@@ -18,12 +18,12 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install X11 Build Dependencies
+      - name: Install X11 & Zsh Build Dependencies
         run: |
           sudo apt update
           sudo apt install -y build-essential gcc g++ pkg-config \
                               libx11-dev libxft-dev libxinerama-dev libxrandr-dev \
-                              libgtk-3-dev
+                              libgtk-3-dev zsh
 
       - name: Create Package Directory Structure
         run: |
@@ -40,8 +40,8 @@ jobs:
           Priority: optional
           Architecture: amd64
           Maintainer: Salih <salih@example.com>
-          Depends: libx11-6, libxrandr2, libgtk-3-0, rofi, dbus-x11, adwaita-icon-theme
-          Description: Windows Desktop Environment (WDE) - Lightweight X11 Desktop Environment.
+          Depends: libx11-6, libxrandr2, libgtk-3-0, rofi, dbus-x11, adwaita-icon-theme, zsh
+          Description: Windows Desktop Environment (WDE) - Independent Lightweight X11 Desktop Environment.
           EOF
 
           cat << 'EOF' > wde-desktop/usr/share/xsessions/wde.desktop
@@ -53,6 +53,7 @@ jobs:
           DesktopNames=WDE;GTK;
           EOF
 
+          # WDE X11 Oturum Betiği
           cat << 'EOF' > wde-desktop/usr/bin/wde-session
           #!/bin/sh
           exec > /tmp/wde-session.log 2>&1
@@ -62,6 +63,7 @@ jobs:
           export XDG_SESSION_DESKTOP=wde
           export XDG_SESSION_TYPE=x11
           export GTK_THEME=Adwaita-dark
+          export SHELL=/bin/zsh
 
           if [ -z "$DBUS_SESSION_BUS_ADDRESS" ]; then
               eval $(dbus-launch --sh-syntax --exit-with-session)
