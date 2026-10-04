@@ -46,8 +46,15 @@ static gboolean update_clock(gpointer user_data) {
 
 static void launch_start_menu(GtkWidget *widget, gpointer data) {
     if (fork() == 0) {
-        // Rofi teması 'south west' olarak düzeltildi
         execlp("rofi", "rofi", "-show", "drun", "-theme-str", "window { location: south west; anchor: south west; x-offset: 5px; y-offset: -40px; }", NULL);
+        exit(0);
+    }
+}
+
+static void launch_terminal(GtkWidget *widget, gpointer data) {
+    if (fork() == 0) {
+        // Zsh çalıştıran varsayılan x-terminal-emulator veya st/kitty
+        execlp("x-terminal-emulator", "x-terminal-emulator", "-e", "zsh", NULL);
         exit(0);
     }
 }
@@ -67,12 +74,16 @@ int main(int argc, char *argv[]) {
     gtk_window_set_default_size(GTK_WINDOW(window), geometry.width, 36);
     gtk_window_move(GTK_WINDOW(window), 0, geometry.height - 36);
 
-    GtkWidget *box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 8);
+    GtkWidget *box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
     gtk_container_set_border_width(GTK_CONTAINER(box), 2);
 
     GtkWidget *btn_start = gtk_button_new_with_label(" Başlat ");
     g_signal_connect(btn_start, "clicked", G_CALLBACK(launch_start_menu), NULL);
     gtk_box_pack_start(GTK_BOX(box), btn_start, FALSE, FALSE, 0);
+
+    GtkWidget *btn_term = gtk_button_new_with_label(" Terminal ");
+    g_signal_connect(btn_term, "clicked", G_CALLBACK(launch_terminal), NULL);
+    gtk_box_pack_start(GTK_BOX(box), btn_term, FALSE, FALSE, 0);
 
     GtkWidget *lbl_spacer = gtk_label_new("");
     gtk_box_pack_start(GTK_BOX(box), lbl_spacer, TRUE, TRUE, 0);
