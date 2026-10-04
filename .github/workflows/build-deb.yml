@@ -35,8 +35,10 @@ jobs:
 
       - name: Set Permissions & Build DEB
         run: |
+          mkdir -p wde-desktop/DEBIAN
+          cp -r DEBIAN/* wde-desktop/DEBIAN/ 2>/dev/null || true
           chmod +x wde-desktop/usr/bin/*
-          chmod 755 wde-desktop/DEBIAN/control
+          chmod -R 755 wde-desktop/DEBIAN
           dpkg-deb --build wde-desktop wde_1.0.0-alpha_amd64.deb
 
       - name: Upload Artifact
