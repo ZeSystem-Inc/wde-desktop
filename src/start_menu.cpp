@@ -1,197 +1,103 @@
 #include <gtk/gtk.h>
 #include <gdk/gdkx.h>
-#include <gio/gio.h>
-#include <vector>
+#include <X11/Xlib.h>
+#include <X11/Xatom.h>
+#include <cstdlib>
+#include <unistd.h>
 #include <string>
-#include <algorithm>
 
-struct AppItem {
-    std::string name;
-    std::string exec;
-    GIcon *icon;
-};
-
-std::vector<AppItem> app_list;
-GtkWidget *list_box = nullptr;
-GtkWidget *search_entry = nullptr;
-GtkWidget *window = nullptr;
-bool is_turkish = false;
-
-void check_language() {
-    const char *lang = g_getenv("LANG");
-    if (lang && std::string(lang).find("tr") != std::string::npos) {
-        is_turkish = true;
-    }
-}
-
-void load_applications() {
-    app_list.clear();
-    const char *dirs[] = {
-        "/usr/share/applications",
-        "/usr/local/share/applications",
-        g_build_filename(g_get_user_data_dir(), "applications", NULL)
-    };
-
-    for (const char *dir_path : dirs) {
-        GDir *dir = g_dir_open(dir_path, 0, NULL);
-        if (!dir) continue;
-
-        const char *filename;
-        while ((filename = g_dir_read_name(dir))) {
-            if (g_str_has_suffix(filename, ".desktop")) {
-                char *full_path = g_build_filename(dir_path, filename, NULL);
-                GKeyFile *key_file = g_key_file_new();
-
-                if (g_key_file_load_from_file(key_file, full_path, G_KEY_FILE_NONE, NULL)) {
-                    char *nodisplay = g_key_file_get_string(key_file, "Desktop Entry", "NoDisplay", NULL);
-                    if (!nodisplay || g_strcmp0(nodisplay, "true") != 0) {
-                        char *name = g_key_file_get_locale_string(key_file, "Desktop Entry", "Name", NULL, NULL);
-                        char *exec = g_key_file_get_string(key_file, "Desktop Entry", "Exec", NULL);
-                        char *icon_str = g_key_file_get_string(key_file, "Desktop Entry", "Icon", NULL);
-
-                        if (name && exec) {
-                            std::string exec_clean = exec;
-                            size_t pos = exec_clean.find('%');
-                            if (pos != std::string::npos) exec_clean = exec_clean.substr(0, pos);
-
-                            GIcon *icon = icon_str ? g_themed_icon_new(icon_str) : NULL;
-                            app_list.push_back({name, exec_clean, icon});
-                        }
-                        g_free(name); g_free(exec); g_free(icon_str);
-                    }
-                    g_free(nodisplay);
-                }
-                g_key_file_free(key_file);
-                g_free(full_path);
-            }
-        }
-        g_dir_close(dir);
-    }
-
-    std::sort(app_list.begin(), app_list.end(), [](const AppItem &a, const AppItem &b) {
-        return a.name < b.name;
-    });
-}
-
-static void on_app_clicked(GtkButton *btn, gpointer user_data) {
-    const char *exec_cmd = (const char*)user_data;
+static void launch_app(GtkWidget *widget, gpointer data) {
+    const char *cmd = (const char *)data;
     if (fork() == 0) {
-        execl("/bin/sh", "sh", "-c", exec_cmd, NULL);
+        execlp("sh", "sh", "-c", cmd, NULL);
         exit(0);
     }
-    gtk_main_quit();
 }
 
-void populate_list(const std::string &filter = "") {
-    GList *children = gtk_container_get_children(GTK_CONTAINER(list_box));
-    for (GList *iter = children; iter != NULL; iter = g_list_next(iter)) {
-        gtk_widget_destroy(GTK_WIDGET(iter->data));
-    }
-    g_list_free(children);
+void make_popup_x11(GtkWidget *widget) {
+    GdkWindow *gdk_win = gtk_widget_get_window(widget);
+    if (!gdk_win) return;
 
-    std::string filter_lower = filter;
-    std::transform(filter_lower.begin(), filter_lower.end(), filter_lower.begin(), ::tolower);
+    Display *display = GDK_WINDOW_XDISPLAY(gdk_win);
+    Window xid = GDK_WINDOW_XID(gdk_win);
 
-    for (const auto &app : app_list) {
-        std::string name_lower = app.name;
-        std::transform(name_lower.begin(), name_lower.end(), name_lower.begin(), ::tolower);
+    Atom net_wm_window_type = XInternAtom(display, "_NET_WM_WINDOW_TYPE", False);
+    Atom net_wm_type_util = XInternAtom(display, "_NET_WM_WINDOW_TYPE_UTILITY", False);
+    XChangeProperty(display, xid, net_wm_window_type, XA_ATOM, 32,
+                    PropModeReplace, (unsigned char *)&net_wm_type_util, 1);
 
-        if (!filter.empty() && name_lower.find(filter_lower) == std::string::npos) continue;
-
-        GtkWidget *btn = gtk_button_new();
-        GtkWidget *hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 10);
-
-        if (app.icon) {
-            GtkWidget *img = gtk_image_new_from_gicon(app.icon, GTK_ICON_SIZE_BUTTON);
-            gtk_box_pack_start(GTK_BOX(hbox), img, FALSE, FALSE, 0);
-        }
-
-        GtkWidget *lbl = gtk_label_new(app.name.c_str());
-        gtk_label_set_xalign(GTK_LABEL(lbl), 0.0);
-        gtk_box_pack_start(GTK_BOX(hbox), lbl, TRUE, TRUE, 0);
-
-        gtk_container_add(GTK_CONTAINER(btn), hbox);
-        
-        char *exec_copy = g_strdup(app.exec.c_str());
-        g_signal_connect(btn, "clicked", G_CALLBACK(on_app_clicked), exec_copy);
-
-        gtk_box_pack_start(GTK_BOX(list_box), btn, FALSE, FALSE, 0);
-    }
-    gtk_widget_show_all(list_box);
-}
-
-static void on_search_changed(GtkSearchEntry *entry, gpointer data) {
-    const char *text = gtk_entry_get_text(GTK_ENTRY(entry));
-    populate_list(text ? text : "");
-}
-
-static gboolean on_focus_out(GtkWidget *widget, GdkEventFocus *event, gpointer user_data) {
-    gtk_main_quit();
-    return TRUE;
-}
-
-static gboolean on_key_press(GtkWidget *widget, GdkEventKey *event, gpointer user_data) {
-    if (event->keyval == GDK_KEY_Escape) {
-        gtk_main_quit();
-        return TRUE;
-    }
-    return FALSE;
+    Atom net_wm_state = XInternAtom(display, "_NET_WM_STATE", False);
+    Atom net_wm_state_above = XInternAtom(display, "_NET_WM_STATE_ABOVE", False);
+    XChangeProperty(display, xid, net_wm_state, XA_ATOM, 32,
+                    PropModeReplace, (unsigned char *)&net_wm_state_above, 1);
 }
 
 int main(int argc, char *argv[]) {
     gtk_init(&argc, &argv);
 
-    check_language();
-
-    window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-    gtk_window_set_title(GTK_WINDOW(window), is_turkish ? "WDE Başlat" : "WDE Start");
-    gtk_window_set_decorated(GTK_WINDOW(window), FALSE);
-    gtk_window_set_skip_taskbar_hint(GTK_WINDOW(window), TRUE);
-    gtk_window_set_skip_pager_hint(GTK_WINDOW(window), TRUE);
-
-    int menu_width = 380;
-    int menu_height = 500;
-    int panel_height = 36;
-
-    // Ekran boyutunu alıp Sol Alta hizalama
-    GdkDisplay *display = gdk_display_get_default();
-    GdkMonitor *monitor = gdk_display_get_primary_monitor(display);
-    if (!monitor) monitor = gdk_display_get_monitor(display, 0);
+    GdkDisplay *gdk_display = gdk_display_get_default();
+    GdkMonitor *monitor = gdk_display_get_primary_monitor(gdk_display);
+    if (!monitor) monitor = gdk_display_get_monitor(gdk_display, 0);
 
     GdkRectangle geometry;
     gdk_monitor_get_geometry(monitor, &geometry);
 
-    int pos_x = geometry.x + 6;
-    int pos_y = geometry.y + geometry.height - menu_height - panel_height - 6;
+    GtkWidget *window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+    gtk_window_set_title(GTK_WINDOW(window), "wde-startmenu");
+    gtk_window_set_decorated(GTK_WINDOW(window), FALSE);
+    gtk_window_set_skip_taskbar_hint(GTK_WINDOW(window), TRUE);
+    gtk_window_set_skip_pager_hint(GTK_WINDOW(window), TRUE);
+    gtk_window_set_type_hint(GTK_WINDOW(window), GDK_WINDOW_TYPE_HINT_POPUP_MENU);
+
+    int menu_width = 320;
+    int menu_height = 420;
+    int panel_height = 36;
 
     gtk_window_set_default_size(GTK_WINDOW(window), menu_width, menu_height);
-    gtk_window_move(GTK_WINDOW(window), pos_x, pos_y);
+    gtk_window_move(GTK_WINDOW(window), 0, geometry.height - panel_height - menu_height);
 
-    GtkWidget *vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 10);
-    gtk_container_set_border_width(GTK_CONTAINER(vbox), 12);
+    GtkWidget *box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 6);
+    gtk_container_set_border_width(GTK_CONTAINER(box), 12);
 
-    search_entry = gtk_search_entry_new();
-    gtk_entry_set_placeholder_text(GTK_ENTRY(search_entry), 
-        is_turkish ? "Uygulama veya Wine programı ara..." : "Search apps or Wine programs...");
-    g_signal_connect(search_entry, "search-changed", G_CALLBACK(on_search_changed), NULL);
-    gtk_box_pack_start(GTK_BOX(vbox), search_entry, FALSE, FALSE, 0);
+    GtkWidget *title = gtk_label_new("<b>Windows Desktop Environment</b>");
+    gtk_label_set_use_markup(GTK_LABEL(title), TRUE);
+    gtk_box_pack_start(GTK_BOX(box), title, FALSE, FALSE, 6);
 
-    GtkWidget *scroll = gtk_scrolled_window_new(NULL, NULL);
-    gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scroll), GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);
-    
-    list_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 4);
-    gtk_container_add(GTK_CONTAINER(scroll), list_box);
-    gtk_box_pack_start(GTK_BOX(vbox), scroll, TRUE, TRUE, 0);
+    // Örnek Uygulamalar Listesi
+    struct AppItem {
+        const char *name;
+        const char *cmd;
+    } apps[] = {
+        {"Terminal (Zsh)", "x-terminal-emulator -e zsh"},
+        {"Dosya Yöneticisi", "thunar || pcmanfm || nautilus"},
+        {"Web Tarayıcısı", "x-www-browser"},
+        {"Yazılım Merkezi", "gnome-software || synaptics"},
+        {"Ayarlar", "xfce4-settings-manager || gnome-control-center"}
+    };
 
-    gtk_container_add(GTK_CONTAINER(window), vbox);
+    for (const auto &app : apps) {
+        GtkWidget *btn = gtk_button_new_with_label(app.name);
+        g_signal_connect(btn, "clicked", G_CALLBACK(launch_app), (gpointer)app.cmd);
+        gtk_box_pack_start(GTK_BOX(box), btn, FALSE, FALSE, 2);
+    }
+
+    GtkWidget *sep = gtk_separator_new(GTK_ORIENTATION_HORIZONTAL);
+    gtk_box_pack_start(GTK_BOX(box), sep, FALSE, FALSE, 8);
+
+    GtkWidget *btn_exit = gtk_button_new_with_label("Oturumu Kapat");
+    g_signal_connect(btn_exit, "clicked", G_CALLBACK(+[](GtkWidget*, gpointer){
+        system("pkill -u $USER");
+    }), NULL);
+    gtk_box_pack_start(GTK_BOX(box), btn_exit, FALSE, FALSE, 2);
+
+    gtk_container_add(GTK_CONTAINER(window), box);
 
     GtkCssProvider *provider = gtk_css_provider_new();
     gtk_css_provider_load_from_data(provider,
-        "window { background-color: #202020; border: 1px solid #383838; border-radius: 8px; }\n"
-        "entry { background-color: #2d2d2d; color: #ffffff; border: 1px solid #3f3f3f; border-radius: 6px; padding: 8px; }\n"
-        "button { background: transparent; color: #ffffff; border: none; padding: 8px; border-radius: 6px; text-align: left; }\n"
-        "button:hover { background-color: #2c2c2c; }\n"
-        "button:active { background-color: #0078d4; }\n", -1, NULL);
+        "window { background-color: #252526; border: 1px solid #3c3c3c; border-radius: 8px; }\n"
+        "label { color: #ffffff; font-family: 'Segoe UI', sans-serif; }\n"
+        "button { background-color: #333333; color: #ffffff; border-radius: 4px; padding: 8px; border: none; text-align: left; }\n"
+        "button:hover { background-color: #0078d4; }\n", -1, NULL);
 
     gtk_style_context_add_provider_for_screen(
         gdk_screen_get_default(),
@@ -199,14 +105,11 @@ int main(int argc, char *argv[]) {
         GTK_STYLE_PROVIDER_PRIORITY_APPLICATION
     );
 
-    load_applications();
-    populate_list();
-
-    g_signal_connect(window, "focus-out-event", G_CALLBACK(on_focus_out), NULL);
-    g_signal_connect(window, "key-press-event", G_CALLBACK(on_key_press), NULL);
+    g_signal_connect(window, "realize", G_CALLBACK(make_popup_x11), NULL);
     g_signal_connect(window, "destroy", G_CALLBACK(gtk_main_quit), NULL);
 
     gtk_widget_show_all(window);
     gtk_main();
+
     return 0;
 }
