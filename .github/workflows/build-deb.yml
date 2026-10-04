@@ -23,7 +23,7 @@ jobs:
           sudo apt update
           sudo apt install -y build-essential gcc g++ pkg-config \
                               libx11-dev libxft-dev libxinerama-dev libxrandr-dev \
-                              libgtk-3-dev libglib2.0-dev zsh picom
+                              libgtk-3-dev libglib2.0-dev zsh picom procps
 
       - name: Create Package Directory Structure
         run: |
@@ -40,7 +40,7 @@ jobs:
           Priority: optional
           Architecture: amd64
           Maintainer: Salih <salih@example.com>
-          Depends: libx11-6, libxrandr2, libgtk-3-0, dbus-x11, adwaita-icon-theme, zsh, wine, picom, psmisc
+          Depends: libx11-6, libxrandr2, libgtk-3-0, dbus-x11, adwaita-icon-theme, zsh, wine, picom, procps, psmisc
           Description: Windows Desktop Environment (WDE) - Independent Lightweight X11 Desktop Environment.
           EOF
 
@@ -68,8 +68,7 @@ jobs:
               eval $(dbus-launch --sh-syntax --exit-with-session)
           fi
 
-          # Ekran yırtılmasını (Tearing) önlemek için VSync Compsitor başlatılır
-          picom --backend glx --vsync &
+          picom --backend xrender --vsync -b
 
           /usr/bin/wde-autoscale-daemon &
           /usr/bin/wde-panel &
