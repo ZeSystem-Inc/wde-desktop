@@ -1,6 +1,6 @@
 [Desktop Entry]
 Name=WDE (Windows Desktop Environment)
-Comment=Lightweight Windows-like X11 Desktop Environment
+Comment=Lightweight Windows-like Desktop Environment
 Exec=/usr/bin/wde-session
 Type=Application
 DesktopNames=WDE;GTK;
