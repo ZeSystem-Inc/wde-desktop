@@ -32,24 +32,18 @@ jobs:
           g++ -std=c++17 src/start_menu.cpp -o wde-desktop/usr/bin/wde-startmenu $(pkg-config --cflags --libs gtk+-3.0 gio-2.0 gdk-x11-3.0 x11) -lX11
           g++ -std=c++17 src/panel.cpp -o wde-desktop/usr/bin/wde-panel $(pkg-config --cflags --libs gtk+-3.0 gdk-x11-3.0 x11) -lX11
 
-      - name: Prepare Session Files & Permissions
+      - name: Prepare Package Files
         run: |
           mkdir -p wde-desktop/DEBIAN
           mkdir -p wde-desktop/usr/share/xsessions
 
-          cp -r DEBIAN/* wde-desktop/DEBIAN/ 2>/dev/null || true
+          cp -r DEBIAN/* wde-desktop/DEBIAN/
+          cp xsessions/wde.desktop wde-desktop/usr/share/xsessions/
+          cp src/wde-session wde-desktop/usr/bin/wde-session 2>/dev/null || true
 
-          if [ -d "xsessions" ]; then
-            cp -r xsessions/* wde-desktop/usr/share/xsessions/ 2>/dev/null || true
-          fi
-
-          if [ -f "src/wde-session" ]; then
-            cp src/wde-session wde-desktop/usr/bin/wde-session
-          fi
-
-          chmod +x wde-desktop/usr/bin/* 2>/dev/null || true
+          chmod +x wde-desktop/usr/bin/*
           chmod -R 755 wde-desktop/DEBIAN
-          chmod 644 wde-desktop/usr/share/xsessions/*.desktop 2>/dev/null || true
+          chmod 644 wde-desktop/usr/share/xsessions/wde.desktop
 
       - name: Build DEB Package
         run: |
