@@ -1,4 +1,4 @@
-name: Build WDE Package (X11)
+name: Build WDE Package
 
 on:
   push:
@@ -27,6 +27,7 @@ jobs:
 
       - name: Compile Core Binaries directly from src/
         run: |
+          mkdir -p wde-desktop/usr/bin
           gcc src/wm.c -o wde-desktop/usr/bin/wde-wm $(pkg-config --cflags --libs x11) -lX11 -lXext
           g++ src/autoscale.cpp -o wde-desktop/usr/bin/wde-autoscale-daemon $(pkg-config --cflags --libs x11 xrandr) -lX11 -lXrandr
           g++ -std=c++17 src/start_menu.cpp -o wde-desktop/usr/bin/wde-startmenu $(pkg-config --cflags --libs gtk+-3.0 gio-2.0 gdk-x11-3.0 x11) -lX11
@@ -49,7 +50,7 @@ jobs:
         if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
         with:
           tag_name: nightly
-          name: "WDE X11 Nightly Build"
+          name: "WDE Nightly Build"
           prerelease: true
           files: wde_1.0.0-alpha_amd64.deb
         env:
