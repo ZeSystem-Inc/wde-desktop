@@ -60,8 +60,8 @@ static void launch_start_menu(GtkWidget *widget, gpointer data) {
         system("pkill -x wde-startmenu");
     } else {
         if (fork() == 0) {
-            execlp("wde-startmenu", "wde-startmenu", NULL);
             execl("/usr/bin/wde-startmenu", "wde-startmenu", NULL);
+            execlp("wde-startmenu", "wde-startmenu", NULL);
             exit(0);
         }
     }
