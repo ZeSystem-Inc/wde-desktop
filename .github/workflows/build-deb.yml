@@ -25,63 +25,13 @@ jobs:
                               libx11-dev libxft-dev libxinerama-dev libxrandr-dev \
                               libgtk-3-dev libglib2.0-dev zsh picom procps psmisc xdotool
 
-      - name: Create Package Directory Structure
-        run: |
-          mkdir -p wde-desktop/usr/bin
-          mkdir -p wde-desktop/usr/share/xsessions
-          mkdir -p wde-desktop/DEBIAN
-
-      - name: Setup Debian Control & Session Desktop
-        run: |
-          cat << 'EOF' > wde-desktop/DEBIAN/control
-          Package: wde
-          Version: 1.0.0-alpha
-          Section: x11
-          Priority: optional
-          Architecture: amd64
-          Maintainer: Salih <salih@example.com>
-          Depends: libx11-6, libxrandr2, libgtk-3-0, dbus-x11, adwaita-icon-theme, zsh, wine, picom, procps, psmisc, xdotool
-          Description: Windows Desktop Environment (WDE) - Independent Lightweight X11 Desktop Environment.
-          EOF
-
-          cat << 'EOF' > wde-desktop/usr/share/xsessions/wde.desktop
-          [Desktop Entry]
-          Name=WDE (Windows Desktop Environment)
-          Comment=Lightweight Windows-like X11 Desktop Environment
-          Exec=/usr/bin/wde-session
-          Type=Application
-          DesktopNames=WDE;GTK;
-          EOF
-
-          cat << 'EOF' > wde-desktop/usr/bin/wde-session
-          #!/bin/sh
-          exec > /tmp/wde-session.log 2>&1
-          echo "[WDE] X11 Oturumu Başlatılıyor..."
-
-          export XDG_CURRENT_DESKTOP=WDE
-          export XDG_SESSION_DESKTOP=wde
-          export XDG_SESSION_TYPE=x11
-          export GTK_THEME=Adwaita-dark
-          export SHELL=/bin/zsh
-
-          if [ -z "$DBUS_SESSION_BUS_ADDRESS" ]; then
-              eval $(dbus-launch --sh-syntax --exit-with-session)
-          fi
-
-          picom --backend xrender --vsync -b
-
-          /usr/bin/wde-autoscale-daemon &
-          /usr/bin/wde-panel &
-
-          exec /usr/bin/wde-wm
-          EOF
-
       - name: Compile Core Binaries directly from src/
         run: |
-          gcc src/wm.c -lX11 -o wde-desktop/usr/bin/wde-wm
-          g++ src/autoscale.cpp -o wde-desktop/usr/bin/wde-autoscale-daemon -lX11 -lXrandr
-          g++ -std=c++17 src/start_menu.cpp -o wde-desktop/usr/bin/wde-startmenu $(pkg-config --cflags --libs gtk+-3.0 gio-2.0 gdk-x11-3.0)
-          g++ -std=c++17 src/panel.cpp -o wde-desktop/usr/bin/wde-panel $(pkg-config --cflags --libs gtk+-3.0 gdk-x11-3.0) -lX11
+          mkdir -p wde-desktop/usr/bin
+          gcc src/wm.c -o wde-desktop/usr/bin/wde-wm $(pkg-config --cflags --libs x11) -lX11 -lXext
+          g++ src/autoscale.cpp -o wde-desktop/usr/bin/wde-autoscale-daemon $(pkg-config --cflags --libs x11 xrandr) -lX11 -lXrandr
+          g++ -std=c++17 src/start_menu.cpp -o wde-desktop/usr/bin/wde-startmenu $(pkg-config --cflags --libs gtk+-3.0 gio-2.0 gdk-x11-3.0 x11) -lX11
+          g++ -std=c++17 src/panel.cpp -o wde-desktop/usr/bin/wde-panel $(pkg-config --cflags --libs gtk+-3.0 gdk-x11-3.0 x11) -lX11
 
       - name: Set Permissions & Build DEB
         run: |
