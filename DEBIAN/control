@@ -3,6 +3,6 @@ Version: 1.0.0-alpha
 Section: x11
 Priority: optional
 Architecture: amd64
-Maintainer: Salih <salih@example.com>
+Maintainer: Salih <ZeSystem-Inc@github.com>
 Depends: libx11-6, libxrandr2, libgtk-3-0, dbus-x11, adwaita-icon-theme, zsh, wine, picom, procps, psmisc, xdotool, openbox
 Description: Windows Desktop Environment (WDE) - Independent Lightweight Desktop Environment.
