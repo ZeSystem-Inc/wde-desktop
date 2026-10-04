@@ -28,6 +28,11 @@ void make_x11_dock(GtkWidget *widget) {
     XChangeProperty(display, xid, net_wm_window_type, XA_ATOM, 32,
                     PropModeReplace, (unsigned char *)&net_wm_window_type_dock, 1);
 
+    Atom net_wm_state = XInternAtom(display, "_NET_WM_STATE", False);
+    Atom net_wm_state_above = XInternAtom(display, "_NET_WM_STATE_ABOVE", False);
+    XChangeProperty(display, xid, net_wm_state, XA_ATOM, 32,
+                    PropModeReplace, (unsigned char *)&net_wm_state_above, 1);
+
     Atom net_wm_strut_partial = XInternAtom(display, "_NET_WM_STRUT_PARTIAL", False);
     
     GdkDisplay *gdk_display = gdk_display_get_default();
@@ -88,7 +93,9 @@ int main(int argc, char *argv[]) {
 
     GtkWidget *window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
     gtk_window_set_decorated(GTK_WINDOW(window), FALSE);
+    gtk_window_set_type_hint(GTK_WINDOW(window), GDK_WINDOW_TYPE_HINT_DOCK);
     
+    // Paneli ekranın en altına hizala
     gtk_window_set_default_size(GTK_WINDOW(window), geometry.width, 36);
     gtk_window_move(GTK_WINDOW(window), 0, geometry.height - 36);
 
