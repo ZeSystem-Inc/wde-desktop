@@ -18,12 +18,12 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install X11 & Zsh Build Dependencies
+      - name: Install X11, GTK & Zsh Build Dependencies
         run: |
           sudo apt update
           sudo apt install -y build-essential gcc g++ pkg-config \
                               libx11-dev libxft-dev libxinerama-dev libxrandr-dev \
-                              libgtk-3-dev zsh
+                              libgtk-3-dev libglib2.0-dev zsh
 
       - name: Create Package Directory Structure
         run: |
@@ -40,7 +40,7 @@ jobs:
           Priority: optional
           Architecture: amd64
           Maintainer: Salih <salih@example.com>
-          Depends: libx11-6, libxrandr2, libgtk-3-0, rofi, dbus-x11, adwaita-icon-theme, zsh
+          Depends: libx11-6, libxrandr2, libgtk-3-0, dbus-x11, adwaita-icon-theme, zsh, wine
           Description: Windows Desktop Environment (WDE) - Independent Lightweight X11 Desktop Environment.
           EOF
 
@@ -53,7 +53,6 @@ jobs:
           DesktopNames=WDE;GTK;
           EOF
 
-          # WDE X11 Oturum Betiği
           cat << 'EOF' > wde-desktop/usr/bin/wde-session
           #!/bin/sh
           exec > /tmp/wde-session.log 2>&1
@@ -75,11 +74,12 @@ jobs:
           exec /usr/bin/wde-wm
           EOF
 
-      - name: Compile Core Binaries (X11)
+      - name: Compile Core Binaries (X11 & GTK)
         run: |
           gcc src/wm.c -o wde-desktop/usr/bin/wde-wm -lX11
           g++ src/autoscale.cpp -o wde-desktop/usr/bin/wde-autoscale-daemon -lX11 -lXrandr
-          g++ src/panel.cpp -o wde-desktop/usr/bin/wde-panel $(pkg-config --cflags --libs gtk+-3.0 gdk-x11-3.0) -lX11
+          g++ -std=c++17 src/start_menu.cpp -o wde-desktop/usr/bin/wde-startmenu $(pkg-config --cflags --libs gtk+-3.0 gio-2.0)
+          g++ -std=c++17 src/panel.cpp -o wde-desktop/usr/bin/wde-panel $(pkg-config --cflags --libs gtk+-3.0 gdk-x11-3.0) -lX11
 
       - name: Set Executable Permissions
         run: |
