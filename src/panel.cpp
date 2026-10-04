@@ -5,6 +5,16 @@
 #include <ctime>
 #include <cstdlib>
 #include <unistd.h>
+#include <string>
+
+bool is_turkish = false;
+
+void check_language() {
+    const char *lang = g_getenv("LANG");
+    if (lang && std::string(lang).find("tr") != std::string::npos) {
+        is_turkish = true;
+    }
+}
 
 void make_x11_dock(GtkWidget *widget) {
     GdkWindow *gdk_win = gtk_widget_get_window(widget);
@@ -45,11 +55,14 @@ static gboolean update_clock(gpointer user_data) {
 }
 
 static void launch_start_menu(GtkWidget *widget, gpointer data) {
-    if (fork() == 0) {
-        execlp("wde-startmenu", "wde-startmenu", NULL);
-        // Sistem yolunda olmama ihtimaline karşı yerel yol kontrolü
-        execl("/usr/bin/wde-startmenu", "wde-startmenu", NULL);
-        exit(0);
+    // Açık olan menüyü kapat/aç (Toggle)
+    int ret = system("killall wde-startmenu 2>/dev/null");
+    if (ret != 0) {
+        if (fork() == 0) {
+            execlp("wde-startmenu", "wde-startmenu", NULL);
+            execl("/usr/bin/wde-startmenu", "wde-startmenu", NULL);
+            exit(0);
+        }
     }
 }
 
@@ -62,6 +75,8 @@ static void launch_terminal(GtkWidget *widget, gpointer data) {
 
 int main(int argc, char *argv[]) {
     gtk_init(&argc, &argv);
+
+    check_language();
 
     GdkDisplay *gdk_display = gdk_display_get_default();
     GdkMonitor *monitor = gdk_display_get_primary_monitor(gdk_display);
@@ -78,7 +93,7 @@ int main(int argc, char *argv[]) {
     GtkWidget *box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
     gtk_container_set_border_width(GTK_CONTAINER(box), 2);
 
-    GtkWidget *btn_start = gtk_button_new_with_label(" Başlat ");
+    GtkWidget *btn_start = gtk_button_new_with_label(is_turkish ? " Başlat " : " Start ");
     g_signal_connect(btn_start, "clicked", G_CALLBACK(launch_start_menu), NULL);
     gtk_box_pack_start(GTK_BOX(box), btn_start, FALSE, FALSE, 0);
 
