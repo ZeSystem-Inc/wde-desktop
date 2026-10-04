@@ -1,6 +1,0 @@
-[Desktop Entry]
-Name=XFCE5
-Comment=XFCE5 Desktop Environment
-Exec=/usr/bin/xfce5-session
-Type=Application
-DesktopNames=XFCE5
