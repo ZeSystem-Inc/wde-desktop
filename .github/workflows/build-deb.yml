@@ -78,7 +78,7 @@ jobs:
 
       - name: Compile Core Binaries directly from src/
         run: |
-          gcc src/wm.c -o wde-desktop/usr/bin/wde-wm -lX11
+          gcc src/wm.c -lX11 -o wde-desktop/usr/bin/wde-wm
           g++ src/autoscale.cpp -o wde-desktop/usr/bin/wde-autoscale-daemon -lX11 -lXrandr
           g++ -std=c++17 src/start_menu.cpp -o wde-desktop/usr/bin/wde-startmenu $(pkg-config --cflags --libs gtk+-3.0 gio-2.0 gdk-x11-3.0)
           g++ -std=c++17 src/panel.cpp -o wde-desktop/usr/bin/wde-panel $(pkg-config --cflags --libs gtk+-3.0 gdk-x11-3.0) -lX11
