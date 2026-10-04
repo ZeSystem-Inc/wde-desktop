@@ -1,4 +1,5 @@
 #include <gtk/gtk.h>
+#include <gdk/gdkx.h>
 #include <gio/gio.h>
 #include <vector>
 #include <string>
@@ -14,6 +15,14 @@ std::vector<AppItem> app_list;
 GtkWidget *list_box = nullptr;
 GtkWidget *search_entry = nullptr;
 GtkWidget *window = nullptr;
+bool is_turkish = false;
+
+void check_language() {
+    const char *lang = g_getenv("LANG");
+    if (lang && std::string(lang).find("tr") != std::string::npos) {
+        is_turkish = true;
+    }
+}
 
 void load_applications() {
     app_list.clear();
@@ -41,7 +50,6 @@ void load_applications() {
                         char *icon_str = g_key_file_get_string(key_file, "Desktop Entry", "Icon", NULL);
 
                         if (name && exec) {
-                            // Exec parametrelerini temizle (%u, %f vb.)
                             std::string exec_clean = exec;
                             size_t pos = exec_clean.find('%');
                             if (pos != std::string::npos) exec_clean = exec_clean.substr(0, pos);
@@ -71,7 +79,7 @@ static void on_app_clicked(GtkButton *btn, gpointer user_data) {
         execl("/bin/sh", "sh", "-c", exec_cmd, NULL);
         exit(0);
     }
-    gtk_widget_hide(window);
+    gtk_main_quit();
 }
 
 void populate_list(const std::string &filter = "") {
@@ -117,20 +125,54 @@ static void on_search_changed(GtkSearchEntry *entry, gpointer data) {
     populate_list(text ? text : "");
 }
 
+static gboolean on_focus_out(GtkWidget *widget, GdkEventFocus *event, gpointer user_data) {
+    gtk_main_quit();
+    return TRUE;
+}
+
+static gboolean on_key_press(GtkWidget *widget, GdkEventKey *event, gpointer user_data) {
+    if (event->keyval == GDK_KEY_Escape) {
+        gtk_main_quit();
+        return TRUE;
+    }
+    return FALSE;
+}
+
 int main(int argc, char *argv[]) {
     gtk_init(&argc, &argv);
 
+    check_language();
+
     window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-    gtk_window_set_title(GTK_WINDOW(window), "WDE Başlat");
-    gtk_window_set_default_size(GTK_WINDOW(window), 380, 520);
+    gtk_window_set_title(GTK_WINDOW(window), is_turkish ? "WDE Başlat" : "WDE Start");
     gtk_window_set_decorated(GTK_WINDOW(window), FALSE);
     gtk_window_set_skip_taskbar_hint(GTK_WINDOW(window), TRUE);
+    gtk_window_set_skip_pager_hint(GTK_WINDOW(window), TRUE);
+
+    int menu_width = 380;
+    int menu_height = 500;
+    int panel_height = 36;
+
+    // Ekran boyutunu alıp Sol Alta hizalama
+    GdkDisplay *display = gdk_display_get_default();
+    GdkMonitor *monitor = gdk_display_get_primary_monitor(display);
+    if (!monitor) monitor = gdk_display_get_monitor(display, 0);
+
+    GdkRectangle geometry;
+    gdk_monitor_get_geometry(monitor, &geometry);
+
+    int pos_x = geometry.x + 6;
+    int pos_y = geometry.y + geometry.height - menu_height - panel_height - 6;
+
+    gtk_window_set_default_size(GTK_WINDOW(window), menu_width, menu_height);
+    gtk_window_move(GTK_WINDOW(window), pos_x, pos_y);
 
     GtkWidget *vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 10);
     gtk_container_set_border_width(GTK_CONTAINER(vbox), 12);
 
     search_entry = gtk_search_entry_new();
-    gtk_entry_set_placeholder_text(GTK_ENTRY(search_entry), "Uygulama veya Wine programı ara...");
+    gtk_entry_set_placeholder_text(GTK_ENTRY(search_entry), 
+        is_turkish ? "Uygulama veya Wine programı ara..." : "Search apps or Wine programs...");
     g_signal_connect(search_entry, "search-changed", G_CALLBACK(on_search_changed), NULL);
     gtk_box_pack_start(GTK_BOX(vbox), search_entry, FALSE, FALSE, 0);
 
@@ -160,6 +202,8 @@ int main(int argc, char *argv[]) {
     load_applications();
     populate_list();
 
+    g_signal_connect(window, "focus-out-event", G_CALLBACK(on_focus_out), NULL);
+    g_signal_connect(window, "key-press-event", G_CALLBACK(on_key_press), NULL);
     g_signal_connect(window, "destroy", G_CALLBACK(gtk_main_quit), NULL);
 
     gtk_widget_show_all(window);
