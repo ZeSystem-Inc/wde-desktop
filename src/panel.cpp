@@ -56,14 +56,15 @@ static gboolean update_clock(gpointer user_data) {
 
 static void launch_start_menu(GtkWidget *widget, gpointer data) {
     int check = system("pgrep -x wde-startmenu > /dev/null");
-    if (check == 0) {
-        system("pkill -x wde-startmenu");
-    } else {
+    if (check != 0) {
         if (fork() == 0) {
             execl("/usr/bin/wde-startmenu", "wde-startmenu", NULL);
             execlp("wde-startmenu", "wde-startmenu", NULL);
             exit(0);
         }
+    } else {
+        system("xdotool search --onlyvisible --class wde-startmenu windowunmap %@ || "
+               "xdotool search --class wde-startmenu windowmap %@");
     }
 }
 
@@ -87,6 +88,7 @@ int main(int argc, char *argv[]) {
 
     GtkWidget *window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
     gtk_window_set_decorated(GTK_WINDOW(window), FALSE);
+    
     gtk_window_set_default_size(GTK_WINDOW(window), geometry.width, 36);
     gtk_window_move(GTK_WINDOW(window), 0, geometry.height - 36);
 
