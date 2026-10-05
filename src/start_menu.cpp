@@ -4,7 +4,12 @@
 #include <string>
 
 #ifdef USE_GTK4
-#include <gtk4-layer-shell/gtk4-layer-shell.h>
+#include <gdk/wayland/gdkwayland.h>
+#include <gdk/x11/gdkx.h>
+#else
+#include <gdk/gdkx.h>
+#include <X11/Xlib.h>
+#include <X11/Xatom.h>
 #endif
 
 struct AppItem {
@@ -19,9 +24,7 @@ static void launch_app(GtkWidget *widget, gpointer data) {
         g_spawn_command_line_async(exec_cmd, NULL);
 #ifdef USE_GTK4
         GtkWidget *win = GTK_WIDGET(g_object_get_data(G_OBJECT(widget), "parent-window"));
-        if (win) {
-            gtk_window_destroy(GTK_WINDOW(win));
-        }
+        if (win) gtk_window_destroy(GTK_WINDOW(win));
 #else
         gtk_main_quit();
 #endif
@@ -37,7 +40,6 @@ static std::vector<AppItem> load_system_applications() {
         if (!g_app_info_should_show(info)) continue;
 
         const char *app_id = g_app_info_get_id(info);
-
         if (app_id && (g_str_has_prefix(app_id, "org.kde.") || g_str_has_prefix(app_id, "kde-"))) {
             continue;
         }
@@ -66,13 +68,8 @@ static std::vector<AppItem> load_system_applications() {
 static void activate(GtkApplication *app, gpointer user_data) {
     GtkWidget *window = gtk_application_window_new(app);
     gtk_window_set_title(GTK_WINDOW(window), "WDE Start Menu");
+    gtk_window_set_decorated(GTK_WINDOW(window), FALSE);
     gtk_window_set_default_size(GTK_WINDOW(window), 420, 520);
-
-    gtk_layer_init_for_window(GTK_WINDOW(window));
-    gtk_layer_set_layer(GTK_WINDOW(window), GTK_LAYER_SHELL_LAYER_TOP);
-    gtk_layer_set_anchor(GTK_WINDOW(window), GTK_LAYER_SHELL_EDGE_LEFT, TRUE);
-    gtk_layer_set_anchor(GTK_WINDOW(window), GTK_LAYER_SHELL_EDGE_BOTTOM, TRUE);
-    gtk_layer_set_margin(GTK_WINDOW(window), GTK_LAYER_SHELL_EDGE_BOTTOM, 40);
 
     GtkWidget *main_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
     gtk_window_set_child(GTK_WINDOW(window), main_box);
@@ -100,7 +97,25 @@ static void activate(GtkApplication *app, gpointer user_data) {
 
     gtk_box_append(GTK_BOX(middle_box), scroll_window);
     gtk_box_append(GTK_BOX(main_box), middle_box);
+
     gtk_window_present(GTK_WINDOW(window));
+
+    GdkSurface *surface = gtk_native_get_surface(GTK_NATIVE(window));
+    if (surface) {
+        if (GDK_IS_WAYLAND_SURFACE(surface)) {
+            // Wayland ortamında popup rolü ver
+            wl_surface *wl_surf = gdk_wayland_surface_get_wl_surface(surface);
+            (void)wl_surf; 
+        } else if (GDK_IS_X11_SURFACE(surface)) {
+            // X11 ortamında GTK4 uyarısı olmadan XAtom müdahalesi
+            Display *xdisplay = gdk_x11_display_get_xdisplay(gdk_surface_get_display(surface));
+            Window xwindow = gdk_x11_surface_get_xid(surface);
+            Atom net_wm_window_type = XInternAtom(xdisplay, "_NET_WM_WINDOW_TYPE", False);
+            Atom net_wm_type_popup = XInternAtom(xdisplay, "_NET_WM_WINDOW_TYPE_POPUP_MENU", False);
+            XChangeProperty(xdisplay, xwindow, net_wm_window_type, XA_ATOM, 32,
+                            PropModeReplace, (unsigned char *)&net_wm_type_popup, 1);
+        }
+    }
 }
 
 int main(int argc, char **argv) {
@@ -163,6 +178,17 @@ int main(int argc, char *argv[]) {
 
     g_signal_connect(window, "destroy", G_CALLBACK(gtk_main_quit), NULL);
     gtk_widget_show_all(window);
+
+    GdkWindow *gdk_win = gtk_widget_get_window(window);
+    if (GDK_IS_X11_WINDOW(gdk_win)) {
+        Display *xdisplay = GDK_WINDOW_XDISPLAY(gdk_win);
+        Window xwindow = GDK_WINDOW_XID(gdk_win);
+        Atom net_wm_window_type = XInternAtom(xdisplay, "_NET_WM_WINDOW_TYPE", False);
+        Atom net_wm_type_popup = XInternAtom(xdisplay, "_NET_WM_WINDOW_TYPE_POPUP_MENU", False);
+        XChangeProperty(xdisplay, xwindow, net_wm_window_type, XA_ATOM, 32,
+                        PropModeReplace, (unsigned char *)&net_wm_type_popup, 1);
+    }
+
     gtk_main();
     return 0;
 }
