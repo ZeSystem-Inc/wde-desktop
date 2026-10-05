@@ -12,6 +12,14 @@ if [ -z "$DBUS_SESSION_BUS_ADDRESS" ]; then
     eval $(dbus-launch --sh-syntax --exit-with-session)
 fi
 
+xsetroot -cursor_name left_ptr &
+
+if [ -f "/usr/share/backgrounds/wde-wallpaper.jpg" ]; then
+    feh --bg-fill /usr/share/backgrounds/wde-wallpaper.jpg &
+else
+    xsetroot -solid "#0078D7" & # Windows 10 Mavisini varsayılan arka plan yap
+fi
+
 picom --backend xrender --vsync -b &
 /usr/bin/wde-autoscale-daemon &
 /usr/bin/wde-panel &
