@@ -3,6 +3,10 @@
 #include <vector>
 #include <string>
 
+#ifdef USE_GTK4
+#include <gtk4-layer-shell/gtk4-layer-shell.h>
+#endif
+
 struct AppItem {
     std::string name;
     std::string icon;
@@ -15,7 +19,9 @@ static void launch_app(GtkWidget *widget, gpointer data) {
         g_spawn_command_line_async(exec_cmd, NULL);
 #ifdef USE_GTK4
         GtkWidget *win = GTK_WIDGET(g_object_get_data(G_OBJECT(widget), "parent-window"));
-        if (win) gtk_window_destroy(GTK_WINDOW(win));
+        if (win) {
+            gtk_window_destroy(GTK_WINDOW(win));
+        }
 #else
         gtk_main_quit();
 #endif
@@ -30,8 +36,15 @@ static std::vector<AppItem> load_system_applications() {
         GAppInfo *info = G_APP_INFO(l->data);
         if (!g_app_info_should_show(info)) continue;
 
+        const char *app_id = g_app_info_get_id(info);
+
+        if (app_id && (g_str_has_prefix(app_id, "org.kde.") || g_str_has_prefix(app_id, "kde-"))) {
+            continue;
+        }
+
         AppItem item;
         item.name = g_app_info_get_name(info) ? g_app_info_get_name(info) : "Uygulama";
+        
         GIcon *icon = g_app_info_get_icon(info);
         if (icon) {
             char *icon_str = g_icon_to_string(icon);
@@ -40,9 +53,11 @@ static std::vector<AppItem> load_system_applications() {
         } else {
             item.icon = "application-x-executable";
         }
+
         item.exec = g_app_info_get_executable(info) ? g_app_info_get_executable(info) : "";
         apps.push_back(item);
     }
+
     g_list_free_full(app_list, g_object_unref);
     return apps;
 }
@@ -51,8 +66,13 @@ static std::vector<AppItem> load_system_applications() {
 static void activate(GtkApplication *app, gpointer user_data) {
     GtkWidget *window = gtk_application_window_new(app);
     gtk_window_set_title(GTK_WINDOW(window), "WDE Start Menu");
-    gtk_window_set_decorated(GTK_WINDOW(window), FALSE);
     gtk_window_set_default_size(GTK_WINDOW(window), 420, 520);
+
+    gtk_layer_init_for_window(GTK_WINDOW(window));
+    gtk_layer_set_layer(GTK_WINDOW(window), GTK_LAYER_SHELL_LAYER_TOP);
+    gtk_layer_set_anchor(GTK_WINDOW(window), GTK_LAYER_SHELL_EDGE_LEFT, TRUE);
+    gtk_layer_set_anchor(GTK_WINDOW(window), GTK_LAYER_SHELL_EDGE_BOTTOM, TRUE);
+    gtk_layer_set_margin(GTK_WINDOW(window), GTK_LAYER_SHELL_EDGE_BOTTOM, 40);
 
     GtkWidget *main_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
     gtk_window_set_child(GTK_WINDOW(window), main_box);
@@ -101,11 +121,20 @@ int main(int argc, char *argv[]) {
     gtk_window_set_type_hint(GTK_WINDOW(window), GDK_WINDOW_TYPE_HINT_POPUP_MENU);
     gtk_window_set_keep_above(GTK_WINDOW(window), TRUE);
 
-    GdkScreen *screen = gdk_screen_get_default();
-    int screen_height = gdk_screen_get_height(screen);
-    
-    gtk_window_set_default_size(GTK_WINDOW(window), 420, 500);
-    gtk_window_move(GTK_WINDOW(window), 0, screen_height - 540);
+    GdkDisplay *display = gdk_display_get_default();
+    GdkMonitor *monitor = gdk_display_get_primary_monitor(display);
+    if (!monitor) monitor = gdk_display_get_monitor(display, 0);
+
+    GdkRectangle geometry;
+    gdk_monitor_get_geometry(monitor, &geometry);
+
+    int menu_width = 420;
+    int menu_height = 500;
+    int pos_x = geometry.x;
+    int pos_y = geometry.y + geometry.height - menu_height - 40;
+
+    gtk_window_set_default_size(GTK_WINDOW(window), menu_width, menu_height);
+    gtk_window_move(GTK_WINDOW(window), pos_x, pos_y);
 
     GtkWidget *main_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
     gtk_container_add(GTK_CONTAINER(window), main_box);
