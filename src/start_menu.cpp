@@ -13,7 +13,14 @@ static void launch_app(GtkWidget *widget, gpointer data) {
     char *exec_cmd = (char *)data;
     if (exec_cmd) {
         g_spawn_command_line_async(exec_cmd, NULL);
+#ifdef USE_GTK4
+        GtkWidget *win = GTK_WIDGET(g_object_get_data(G_OBJECT(widget), "parent-window"));
+        if (win) {
+            gtk_window_destroy(GTK_WINDOW(win));
+        }
+#else
         gtk_main_quit();
+#endif
     }
 }
 
@@ -75,6 +82,8 @@ static void activate(GtkApplication *app, gpointer user_data) {
         gtk_box_append(GTK_BOX(btn_box), icon);
         gtk_box_append(GTK_BOX(btn_box), label);
         gtk_button_set_child(GTK_BUTTON(btn), btn_box);
+        
+        g_object_set_data(G_OBJECT(btn), "parent-window", window);
         g_signal_connect(btn, "clicked", G_CALLBACK(launch_app), g_strdup(app_data.exec.c_str()));
         gtk_box_append(GTK_BOX(app_list_box), btn);
     }
