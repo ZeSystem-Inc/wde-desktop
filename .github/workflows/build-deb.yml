@@ -42,10 +42,6 @@ jobs:
           cp -r DEBIAN/* wde-desktop/DEBIAN/
           cp -r usr/* wde-desktop/usr/ 2>/dev/null || true
 
-          if [ -f "src/wde-session" ]; then
-            cp src/wde-session wde-desktop/usr/bin/wde-session
-          fi
-
           chmod 755 wde-desktop/usr/bin/* 2>/dev/null || true
           chmod -R 755 wde-desktop/DEBIAN
           chmod 644 wde-desktop/usr/share/xsessions/*.desktop 2>/dev/null || true
