@@ -15,9 +15,7 @@ static void launch_app(GtkWidget *widget, gpointer data) {
         g_spawn_command_line_async(exec_cmd, NULL);
 #ifdef USE_GTK4
         GtkWidget *win = GTK_WIDGET(g_object_get_data(G_OBJECT(widget), "parent-window"));
-        if (win) {
-            gtk_window_destroy(GTK_WINDOW(win));
-        }
+        if (win) gtk_window_destroy(GTK_WINDOW(win));
 #else
         gtk_main_quit();
 #endif
@@ -34,7 +32,6 @@ static std::vector<AppItem> load_system_applications() {
 
         AppItem item;
         item.name = g_app_info_get_name(info) ? g_app_info_get_name(info) : "Uygulama";
-        
         GIcon *icon = g_app_info_get_icon(info);
         if (icon) {
             char *icon_str = g_icon_to_string(icon);
@@ -43,11 +40,9 @@ static std::vector<AppItem> load_system_applications() {
         } else {
             item.icon = "application-x-executable";
         }
-
         item.exec = g_app_info_get_executable(info) ? g_app_info_get_executable(info) : "";
         apps.push_back(item);
     }
-
     g_list_free_full(app_list, g_object_unref);
     return apps;
 }
@@ -57,15 +52,10 @@ static void activate(GtkApplication *app, gpointer user_data) {
     GtkWidget *window = gtk_application_window_new(app);
     gtk_window_set_title(GTK_WINDOW(window), "WDE Start Menu");
     gtk_window_set_decorated(GTK_WINDOW(window), FALSE);
-    gtk_window_set_default_size(GTK_WINDOW(window), 520, 580);
+    gtk_window_set_default_size(GTK_WINDOW(window), 420, 520);
 
     GtkWidget *main_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
     gtk_window_set_child(GTK_WINDOW(window), main_box);
-
-    GtkWidget *sidebar = gtk_box_new(GTK_ORIENTATION_VERTICAL, 10);
-    GtkWidget *btn_power = gtk_button_new_from_icon_name("system-shutdown-symbolic");
-    gtk_box_append(GTK_BOX(sidebar), btn_power);
-    gtk_box_append(GTK_BOX(main_box), sidebar);
 
     GtkWidget *middle_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 5);
     GtkWidget *scroll_window = gtk_scrolled_window_new();
@@ -107,16 +97,18 @@ int main(int argc, char *argv[]) {
     GtkWidget *window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
     gtk_window_set_decorated(GTK_WINDOW(window), FALSE);
     gtk_window_set_skip_taskbar_hint(GTK_WINDOW(window), TRUE);
+    gtk_window_set_skip_pager_hint(GTK_WINDOW(window), TRUE);
     gtk_window_set_type_hint(GTK_WINDOW(window), GDK_WINDOW_TYPE_HINT_POPUP_MENU);
-    gtk_window_set_default_size(GTK_WINDOW(window), 520, 580);
+    gtk_window_set_keep_above(GTK_WINDOW(window), TRUE);
+
+    GdkScreen *screen = gdk_screen_get_default();
+    int screen_height = gdk_screen_get_height(screen);
+    
+    gtk_window_set_default_size(GTK_WINDOW(window), 420, 500);
+    gtk_window_move(GTK_WINDOW(window), 0, screen_height - 540);
 
     GtkWidget *main_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
     gtk_container_add(GTK_CONTAINER(window), main_box);
-
-    GtkWidget *sidebar = gtk_box_new(GTK_ORIENTATION_VERTICAL, 10);
-    GtkWidget *btn_power = gtk_button_new_from_icon_name("system-shutdown-symbolic", GTK_ICON_SIZE_BUTTON);
-    gtk_box_pack_end(GTK_BOX(sidebar), btn_power, FALSE, FALSE, 5);
-    gtk_box_pack_start(GTK_BOX(main_box), sidebar, FALSE, FALSE, 0);
 
     GtkWidget *middle_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 5);
     GtkWidget *scroll_window = gtk_scrolled_window_new(NULL, NULL);
