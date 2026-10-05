@@ -1,0 +1,6 @@
+[Desktop Entry]
+Name=WDE (Wayland)
+Comment=Windows Desktop Environment (Wayland/Labwc)
+Exec=/usr/bin/wde-wayland-session
+Type=Application
+DesktopNames=WDE;GTK;
