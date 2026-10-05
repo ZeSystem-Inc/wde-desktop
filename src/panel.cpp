@@ -2,7 +2,12 @@
 #include <ctime>
 
 #ifdef USE_GTK4
-#include <gtk4-layer-shell/gtk4-layer-shell.h>
+#include <gdk/wayland/gdkwayland.h>
+#include <gdk/x11/gdkx.h>
+#else
+#include <gdk/gdkx.h>
+#include <X11/Xlib.h>
+#include <X11/Xatom.h>
 #endif
 
 static void open_start_menu(GtkWidget *widget, gpointer data) {
@@ -42,13 +47,8 @@ static gboolean update_clock(gpointer label) {
 static void activate(GtkApplication *app, gpointer user_data) {
     GtkWidget *window = gtk_application_window_new(app);
     gtk_window_set_title(GTK_WINDOW(window), "WDE Panel");
-
-    gtk_layer_init_for_window(GTK_WINDOW(window));
-    gtk_layer_set_layer(GTK_WINDOW(window), GTK_LAYER_SHELL_LAYER_TOP);
-    gtk_layer_set_anchor(GTK_WINDOW(window), GTK_LAYER_SHELL_EDGE_LEFT, TRUE);
-    gtk_layer_set_anchor(GTK_WINDOW(window), GTK_LAYER_SHELL_EDGE_RIGHT, TRUE);
-    gtk_layer_set_anchor(GTK_WINDOW(window), GTK_LAYER_SHELL_EDGE_BOTTOM, TRUE);
-    gtk_layer_auto_exclusive_zone_enable(GTK_WINDOW(window));
+    gtk_window_set_decorated(GTK_WINDOW(window), FALSE);
+    gtk_window_set_default_size(GTK_WINDOW(window), 1280, 40);
 
     GtkWidget *panel_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
     gtk_window_set_child(GTK_WINDOW(window), panel_box);
@@ -79,6 +79,16 @@ static void activate(GtkApplication *app, gpointer user_data) {
     gtk_box_append(GTK_BOX(panel_box), clock_label);
 
     gtk_window_present(GTK_WINDOW(window));
+
+    GdkSurface *surface = gtk_native_get_surface(GTK_NATIVE(window));
+    if (surface && GDK_IS_X11_SURFACE(surface)) {
+        Display *xdisplay = gdk_x11_display_get_xdisplay(gdk_surface_get_display(surface));
+        Window xwindow = gdk_x11_surface_get_xid(surface);
+        Atom net_wm_window_type = XInternAtom(xdisplay, "_NET_WM_WINDOW_TYPE", False);
+        Atom net_wm_type_dock = XInternAtom(xdisplay, "_NET_WM_WINDOW_TYPE_DOCK", False);
+        XChangeProperty(xdisplay, xwindow, net_wm_window_type, XA_ATOM, 32,
+                        PropModeReplace, (unsigned char *)&net_wm_type_dock, 1);
+    }
 }
 
 int main(int argc, char **argv) {
@@ -136,6 +146,17 @@ int main(int argc, char *argv[]) {
 
     g_signal_connect(window, "destroy", G_CALLBACK(gtk_main_quit), NULL);
     gtk_widget_show_all(window);
+
+    GdkWindow *gdk_win = gtk_widget_get_window(window);
+    if (GDK_IS_X11_WINDOW(gdk_win)) {
+        Display *xdisplay = GDK_WINDOW_XDISPLAY(gdk_win);
+        Window xwindow = GDK_WINDOW_XID(gdk_win);
+        Atom net_wm_window_type = XInternAtom(xdisplay, "_NET_WM_WINDOW_TYPE", False);
+        Atom net_wm_type_dock = XInternAtom(xdisplay, "_NET_WM_WINDOW_TYPE_DOCK", False);
+        XChangeProperty(xdisplay, xwindow, net_wm_window_type, XA_ATOM, 32,
+                        PropModeReplace, (unsigned char *)&net_wm_type_dock, 1);
+    }
+
     gtk_main();
     return 0;
 }
