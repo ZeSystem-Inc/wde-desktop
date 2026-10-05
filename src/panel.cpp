@@ -16,7 +16,7 @@ static gboolean update_clock(gpointer label) {
 
     time(&rawtime);
     timeinfo = localtime(&rawtime);
-    strftime(buffer, sizeof(buffer), "%H:%M\n%d.%m.%Y", timeinfo);
+    strftime(buffer, sizeof(buffer), "%H:%M - %d.%m.%Y", timeinfo);
 
     gtk_label_set_text(GTK_LABEL(label), buffer);
     return TRUE;
@@ -65,8 +65,17 @@ int main(int argc, char *argv[]) {
 
     GtkWidget *window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
     gtk_window_set_decorated(GTK_WINDOW(window), FALSE);
+    gtk_window_set_skip_taskbar_hint(GTK_WINDOW(window), TRUE);
+    gtk_window_set_skip_pager_hint(GTK_WINDOW(window), TRUE);
     gtk_window_set_type_hint(GTK_WINDOW(window), GDK_WINDOW_TYPE_HINT_DOCK);
-    gtk_window_set_default_size(GTK_WINDOW(window), 1280, 40);
+    gtk_window_set_keep_above(GTK_WINDOW(window), TRUE);
+
+    GdkScreen *screen = gdk_screen_get_default();
+    int screen_width = gdk_screen_get_width(screen);
+    int screen_height = gdk_screen_get_height(screen);
+
+    gtk_window_set_default_size(GTK_WINDOW(window), screen_width, 40);
+    gtk_window_move(GTK_WINDOW(window), 0, screen_height - 40);
 
     GtkWidget *panel_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
     gtk_container_add(GTK_CONTAINER(window), panel_box);
