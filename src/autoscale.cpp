@@ -1,37 +1,34 @@
 #include <X11/Xlib.h>
 #include <X11/extensions/Xrandr.h>
 #include <iostream>
-#include <unistd.h>
+#include <cstdlib>
 
 int main() {
-    Display *display = XOpenDisplay(NULL);
-    if (!display) {
-        std::cerr << "[WDE-Autoscale] HATA: X Display'e bağlanılamadı!" << std::endl;
+    Display *dpy = XOpenDisplay(NULL);
+    if (!dpy) {
+        std::cerr << "X Display açılamadı!" << std::endl;
         return 1;
     }
 
-    Window root = DefaultRootWindow(display);
-    int event_base, error_base;
+    Window root = DefaultRootWindow(dpy);
+    XRRScreenResources *resources = XRRGetScreenResources(dpy, root);
 
-    // XRandR eklentisi var mı kontrol et
-    if (!XRRQueryExtension(display, &event_base, &error_base)) {
-        std::cerr << "[WDE-Autoscale] XRandR desteklenmiyor!" << std::endl;
-        XCloseDisplay(display);
-        return 1;
-    }
-
-    XRRSelectInput(display, root, RRScreenChangeNotifyMask);
-    std::cout << "[WDE-Autoscale] Otomatik Çözünürlük Servisi Aktif." << std::endl;
-
-    XEvent ev;
-    while (true) {
-        XNextEvent(display, &ev);
-        if (ev.type == event_base + RRScreenChangeNotify) {
-            XRRUpdateConfiguration(&ev);
-            std::cout << "[WDE-Autoscale] Ekran boyutu değişti, düzen güncellendi." << std::endl;
+    if (resources) {
+        for (int i = 0; i < resources->noutput; i++) {
+            XRROutputInfo *output_info = XRRGetOutputInfo(dpy, resources, resources->outputs[i]);
+            if (output_info->connection == RR_Connected && output_info->crtc) {
+                XRRCrtcInfo *crtc_info = XRRGetCrtcInfo(dpy, resources, output_info->crtc);
+                if (crtc_info) {
+                    std::cout << "Ekran Bulundu: " << output_info->name 
+                              << " | Çözünürlük: " << crtc_info->width << "x" << crtc_info->height << std::endl;
+                    XRRFreeCrtcInfo(crtc_info);
+                }
+            }
+            XRRFreeOutputInfo(output_info);
         }
+        XRRFreeScreenResources(resources);
     }
 
-    XCloseDisplay(display);
+    XCloseDisplay(dpy);
     return 0;
 }
