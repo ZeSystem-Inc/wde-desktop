@@ -1,0 +1,11 @@
+#!/bin/sh
+exec > /tmp/wde-wayland-session.log 2>&1
+echo "[WDE Wayland] Oturum Başlatılıyor..."
+
+export XDG_CURRENT_DESKTOP=WDE
+export XDG_SESSION_DESKTOP=wde-wayland
+export XDG_SESSION_TYPE=wayland
+export GTK_THEME=Adwaita-dark
+export GDK_BACKEND=wayland
+
+exec labwc --autostart "/usr/bin/wde-startmenu-wayland & /usr/bin/wde-panel-wayland &"
