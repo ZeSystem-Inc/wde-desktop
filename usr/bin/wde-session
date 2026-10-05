@@ -1,26 +1,23 @@
 #!/bin/sh
 exec > /tmp/wde-session.log 2>&1
-echo "[WDE] Oturum Başlatılıyor..."
+echo "[WDE X11] Oturum Başlatılıyor..."
 
 export XDG_CURRENT_DESKTOP=WDE
 export XDG_SESSION_DESKTOP=wde
 export XDG_SESSION_TYPE=x11
 export GTK_THEME=Adwaita-dark
-export SHELL=/bin/zsh
 
 if [ -z "$DBUS_SESSION_BUS_ADDRESS" ]; then
     eval $(dbus-launch --sh-syntax --exit-with-session)
 fi
 
 xsetroot -cursor_name left_ptr &
-
-if [ -f "/usr/share/backgrounds/wde-wallpaper.jpg" ]; then
-    feh --bg-fill /usr/share/backgrounds/wde-wallpaper.jpg &
-else
-    xsetroot -solid "#0078D7" & # Windows 10 Mavisini varsayılan arka plan yap
-fi
+xsetroot -solid "#0078D7" &
 
 picom --backend xrender --vsync -b &
+
+killall -q wde-panel wde-startmenu
+
 /usr/bin/wde-autoscale-daemon &
 /usr/bin/wde-panel &
 
